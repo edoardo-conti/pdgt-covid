@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/lib/pq"
 	_ "github.com/lib/pq"
 )
 
@@ -27,13 +28,26 @@ type entrySummary struct {
 	deceduti                 int
 	totaleCasi               int
 	tamponi                  int
-	casiTestati              int
-	noteIT                   string
-	noteEN                   string
+	casiTestati              sql.NullInt64
+	noteIT                   sql.NullString
+	noteEN                   sql.NullString
 }
 
 type entries struct {
 	Entries []entrySummary
+}
+
+func openDb() *sql.DB {
+	url := os.Getenv("DATABASE_URL")
+	connection, _ := pq.ParseURL(url)
+	connection += " sslmode=require"
+
+	db, err := sql.Open("postgres", connection)
+	if err != nil {
+		log.Println(err)
+	}
+
+	return db
 }
 
 // queryEntries first fetches the repositories data from the db
@@ -77,10 +91,13 @@ func queryEntries(righe *entries, db *sql.DB) error {
 
 func main() {
 	// db
-	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
-	if err != nil {
-		log.Fatal(err)
-	}
+	/*
+		db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
+		if err != nil {
+			log.Fatal(err)
+		}
+	*/
+	db := openDb()
 
 	port := os.Getenv("PORT")
 
