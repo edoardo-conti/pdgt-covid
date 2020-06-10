@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -100,6 +101,48 @@ func main() {
 			"status":  200,
 			"message": nazioni,
 		})
+	})
+
+	// endpoint: /nazione/:bydate (not work)
+	router.GET("/nazione/:bydate", func(c *gin.Context) {
+		nazioneDate := c.Params.ByName("bydate")
+
+		if nazioneDate != "" {
+			data := "2020-02-28"
+			var r nazione
+
+			row := db.QueryRow("SELECT * FROM nazione WHERE data=$1", data)
+			switch err := row.Scan(
+				&r.Data,
+				&r.Stato,
+				&r.RicoveratiConSintomi,
+				&r.TerapiaIntensiva,
+				&r.TotaleOspedalizzati,
+				&r.IsolamentoDomiciliare,
+				&r.TotalePositivi,
+				&r.VariazioneTotalePositivi,
+				&r.NuoviPositivi,
+				&r.DimessiGuariti,
+				&r.Deceduti,
+				&r.TotaleCasi,
+				&r.Tamponi,
+				&r.CasiTestati,
+				&r.NoteIT,
+				&r.NoteEN); err {
+			case sql.ErrNoRows:
+				fmt.Println("No rows were returned!")
+			case nil:
+
+				c.JSON(http.StatusOK, gin.H{
+					"status":  200,
+					"message": r,
+				})
+
+			default:
+				panic(err)
+			}
+		}
+
 	})
 
 	router.Run(":" + port)
