@@ -2,107 +2,45 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/lib/pq"
 	_ "github.com/lib/pq"
 )
 
 // repository contains the details of a repository
-type entrySummary struct {
-	data                     string
-	stato                    string
-	ricoveratiConSintomi     int
-	terapiaIntensiva         int
-	totaleOspedalizzati      int
-	isolamentoDomiciliare    int
-	totalePositivi           int
-	variazioneTotalePositivi int
-	nuoviPositivi            int
-	dimessiGuariti           int
-	deceduti                 int
-	totaleCasi               int
-	tamponi                  int
-	casiTestati              sql.NullInt64
-	noteIT                   sql.NullString
-	noteEN                   sql.NullString
-}
-
-type entries struct {
-	Entries []entrySummary
-}
-
-func openDb() *sql.DB {
-	url := os.Getenv("DATABASE_URL")
-	connection, _ := pq.ParseURL(url)
-	connection += " sslmode=require"
-
-	db, err := sql.Open("postgres", connection)
-	if err != nil {
-		log.Println(err)
-	}
-
-	return db
-}
-
-// queryEntries first fetches the repositories data from the db
-func queryEntries(righe *entries, db *sql.DB) error {
-	rows, err := db.Query(`SELECT * FROM nazione`)
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		riga := entrySummary{}
-		err = rows.Scan(
-			&riga.data,
-			&riga.stato,
-			&riga.ricoveratiConSintomi,
-			&riga.terapiaIntensiva,
-			&riga.totaleOspedalizzati,
-			&riga.isolamentoDomiciliare,
-			&riga.totalePositivi,
-			&riga.variazioneTotalePositivi,
-			&riga.nuoviPositivi,
-			&riga.dimessiGuariti,
-			&riga.deceduti,
-			&riga.totaleCasi,
-			&riga.tamponi,
-			&riga.casiTestati,
-			&riga.noteIT,
-			&riga.noteEN,
-		)
-		if err != nil {
-			return err
-		}
-		righe.Entries = append(righe.Entries, riga)
-	}
-	err = rows.Err()
-	if err != nil {
-		return err
-	}
-	return nil
+type nazione struct {
+	Data                     string         `json:"data"`
+	Stato                    string         `json:"stato"`
+	RicoveratiConSintomi     int            `json:"ricoverati_con_sintomi"`
+	TerapiaIntensiva         int            `json:"terapia_intensiva"`
+	TotaleOspedalizzati      int            `json:"totale_ospedalizzati"`
+	IsolamentoDomiciliare    int            `json:"isolamento_domiciliare"`
+	TotalePositivi           int            `json:"totale_oositivi"`
+	VariazioneTotalePositivi int            `json:"variazione_totale_positivi"`
+	NuoviPositivi            int            `json:"nuovi_positivi"`
+	DimessiGuariti           int            `json:"dimessi_guariti"`
+	Deceduti                 int            `json:"deceduti"`
+	TotaleCasi               int            `json:"totale_casi"`
+	Tamponi                  int            `json:"tamponi"`
+	CasiTestati              sql.NullInt64  `json:"casi_testati"`
+	NoteIT                   sql.NullString `json:"note_it"`
+	NoteEN                   sql.NullString `json:"note_en"`
 }
 
 func main() {
-	// db
-	/*
-		db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
-		if err != nil {
-			log.Fatal(err)
-		}
-	*/
-	db := openDb()
-
 	port := os.Getenv("PORT")
 
 	if port == "" {
 		log.Fatal("$PORT must be set")
+	}
+
+	// db
+	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	if err != nil {
+		log.Fatalf("Error opening database: %q", err)
 	}
 
 	router := gin.New()
@@ -110,28 +48,58 @@ func main() {
 
 	// endpoint: /
 	router.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"covid-19 api": "welcome"})
+		c.JSON(http.StatusOK, gin.H{
+			"status":  200,
+			"message": "Benvenuto su PDGT-COVID!",
+		})
 	})
 
 	// endpoint: /nazione
 	router.GET("/nazione", func(c *gin.Context) {
-		righe := entries{}
-
-		err := queryEntries(&righe, db)
+		rows, err := db.Query("SELECT * FROM nazione")
 		if err != nil {
-			c.String(http.StatusInternalServerError,
-				fmt.Sprintf("Error 1: ", err))
-			return
+			log.Fatalf("Query: %v", err)
+		}
+		defer rows.Close()
+
+		//got := []nazione{}
+
+		var nazioni []nazione
+		for rows.Next() {
+			// c := new(Course)
+			var r nazione
+			err = rows.Scan(
+				&r.Data,
+				&r.Stato,
+				&r.RicoveratiConSintomi,
+				&r.TerapiaIntensiva,
+				&r.TotaleOspedalizzati,
+				&r.IsolamentoDomiciliare,
+				&r.TotalePositivi,
+				&r.VariazioneTotalePositivi,
+				&r.NuoviPositivi,
+				&r.DimessiGuariti,
+				&r.Deceduti,
+				&r.TotaleCasi,
+				&r.Tamponi,
+				&r.CasiTestati,
+				&r.NoteIT,
+				&r.NoteEN)
+			if err != nil {
+				log.Fatalf("Scan: %v", err)
+			}
+			nazioni = append(nazioni, nazione{r.Data, r.Stato, r.RicoveratiConSintomi, r.TerapiaIntensiva, r.TotaleOspedalizzati, r.IsolamentoDomiciliare, r.TotalePositivi, r.VariazioneTotalePositivi, r.NuoviPositivi, r.DimessiGuariti, r.Deceduti, r.TotaleCasi, r.Tamponi, r.CasiTestati, r.NoteIT, r.NoteEN})
+
+			//got = append(got, r)
 		}
 
-		out, err := json.Marshal(righe)
-		if err != nil {
-			c.String(http.StatusInternalServerError,
-				fmt.Sprintf("Error 2: ", err))
-			return
-		}
+		//log.Println(got)
+		//nazioniBytes, _ := json.Marshal(&nazioni)
 
-		c.JSON(http.StatusOK, string(out))
+		c.JSON(http.StatusOK, gin.H{
+			"status":  200,
+			"message": nazioni,
+		})
 	})
 
 	router.Run(":" + port)
