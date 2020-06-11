@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"database/sql"
+	"encoding/json"
 	"log"
 	"net/http"
 	"regexp"
@@ -10,6 +11,20 @@ import (
 
 	"pdgt-covid/models"
 )
+
+type response struct {
+	Status   int      `json:"status"`
+	Messagge []string `json:"message"`
+}
+
+// HandleAndamento ...
+func HandleAndamento(c *gin.Context) {
+	str := `{"status": 400, "message": ["/andamento/nazionale", "/andamento/regionale"]}`
+	res := response{}
+	json.Unmarshal([]byte(str), &res)
+
+	c.JSON(http.StatusBadRequest, res)
+}
 
 // NationalTrend ...
 func NationalTrend(c *gin.Context) {
@@ -117,6 +132,7 @@ func NationalTrendByDate(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"status":  400,
 				"message": "formato data non corretto",
+				"format":  "es. 2020-04-12",
 			})
 		}
 	}

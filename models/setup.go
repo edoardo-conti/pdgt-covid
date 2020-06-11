@@ -3,7 +3,10 @@ package models
 import (
 	"database/sql"
 	"log"
+	"net/http"
 	"os"
+
+	"github.com/gin-gonic/gin"
 )
 
 var DB *sql.DB
@@ -17,4 +20,11 @@ func ConnectDatabase() {
 
 	// bind variabili
 	DB = database
+}
+
+func HandleWelcome(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"status":  200,
+		"message": "Benvenuto su PDGT-COVID! [Developed by Edoardo C.]",
+	})
 }
