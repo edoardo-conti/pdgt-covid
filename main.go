@@ -51,10 +51,15 @@ func main() {
 		c.JSON(http.StatusOK, res)
 	})
 
-	// endpoint: /nazione
+	// endpoint: /andamento/nazionale
 	router.GET("/andamento/nazionale", controllers.NationalTrend)
-	// endpoint: /nazione/:bydate (todo)
+	// endpoint: /andamento/nazionale/:bydate
 	router.GET("/andamento/nazionale/:bydate", controllers.NationalTrendByDate)
+
+	// endpoint: /utenti
+	router.GET("/utenti", controllers.GetAllUsers)
+	// endpoint: /utenti/:byusername
+	router.GET("/utenti/:byusername", controllers.GetUserByUsername)
 
 	router.Run(":" + port)
 }

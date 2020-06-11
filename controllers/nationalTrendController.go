@@ -104,8 +104,8 @@ func NationalTrendByDate(c *gin.Context) {
 				})
 			case nil:
 				c.JSON(http.StatusOK, gin.H{
-					"status":  200,
-					"message": r,
+					"status": 200,
+					"data":   r,
 				})
 			default:
 				c.JSON(http.StatusBadRequest, gin.H{
