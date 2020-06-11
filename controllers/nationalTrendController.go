@@ -2,16 +2,16 @@ package controllers
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"net/http"
-	
-	"github.com/gin-gonic/gin"
-	"pdgt-covid/models"
+	"regexp"
 
-	// importare: "github.com/edoardo-conti/pdgt-covid/models"
+	"github.com/gin-gonic/gin"
+
+	"pdgt-covid/models"
 )
 
+// NationalTrend ...
 func NationalTrend(c *gin.Context) {
 	rows, err := models.DB.Query("SELECT * FROM nazione")
 	if err != nil {
@@ -22,6 +22,9 @@ func NationalTrend(c *gin.Context) {
 	//got := []nazione{}
 
 	var nazioni []models.NationalTrend
+	// counter per il conteggio dei record
+	counter := 0
+
 	for rows.Next() {
 		// c := new(Course)
 		var r models.NationalTrend
@@ -47,6 +50,9 @@ func NationalTrend(c *gin.Context) {
 		}
 		nazioni = append(nazioni, models.NationalTrend{r.Data, r.Stato, r.RicoveratiConSintomi, r.TerapiaIntensiva, r.TotaleOspedalizzati, r.IsolamentoDomiciliare, r.TotalePositivi, r.VariazioneTotalePositivi, r.NuoviPositivi, r.DimessiGuariti, r.Deceduti, r.TotaleCasi, r.Tamponi, r.CasiTestati, r.NoteIT, r.NoteEN})
 
+		// incremento del counter
+		counter++
+
 		//got = append(got, r)
 	}
 
@@ -54,47 +60,64 @@ func NationalTrend(c *gin.Context) {
 	//nazioniBytes, _ := json.Marshal(&nazioni)
 
 	c.JSON(http.StatusOK, gin.H{
-		"status":  200,
-		"message": nazioni,
+		"status": 200,
+		"count":  counter,
+		"data":   nazioni,
 	})
 }
 
+// NationalTrendByDate ...
 func NationalTrendByDate(c *gin.Context) {
-	nazioneDate := c.Params.ByName("bydate")
+	// get parameter
+	date := c.Params.ByName("bydate")
 
-	if nazioneDate != "" {
-		data := "2020-02-28"
-		var r models.NationalTrend
+	//fmt.Println("log: %s", date)
 
-		row := models.DB.QueryRow("SELECT * FROM nazione WHERE data=$1", data)
-		switch err := row.Scan(
-			&r.Data,
-			&r.Stato,
-			&r.RicoveratiConSintomi,
-			&r.TerapiaIntensiva,
-			&r.TotaleOspedalizzati,
-			&r.IsolamentoDomiciliare,
-			&r.TotalePositivi,
-			&r.VariazioneTotalePositivi,
-			&r.NuoviPositivi,
-			&r.DimessiGuariti,
-			&r.Deceduti,
-			&r.TotaleCasi,
-			&r.Tamponi,
-			&r.CasiTestati,
-			&r.NoteIT,
-			&r.NoteEN); err {
-		case sql.ErrNoRows:
-			fmt.Println("No rows were returned!")
-		case nil:
+	if date != "" {
+		// controllo validità del parametro (es. 2020-04-30)
+		dateCheck := regexp.MustCompile("((19|20)\\d\\d)-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])")
+		if dateCheck.MatchString(date) {
+			var r models.NationalTrend
 
-			c.JSON(http.StatusOK, gin.H{
-				"status":  200,
-				"message": r,
+			row := models.DB.QueryRow("SELECT * FROM nazione WHERE data=$1", date)
+			switch err := row.Scan(
+				&r.Data,
+				&r.Stato,
+				&r.RicoveratiConSintomi,
+				&r.TerapiaIntensiva,
+				&r.TotaleOspedalizzati,
+				&r.IsolamentoDomiciliare,
+				&r.TotalePositivi,
+				&r.VariazioneTotalePositivi,
+				&r.NuoviPositivi,
+				&r.DimessiGuariti,
+				&r.Deceduti,
+				&r.TotaleCasi,
+				&r.Tamponi,
+				&r.CasiTestati,
+				&r.NoteIT,
+				&r.NoteEN); err {
+			case sql.ErrNoRows:
+				c.JSON(http.StatusOK, gin.H{
+					"status":  200,
+					"message": "trend data richiesta non disponibile",
+				})
+			case nil:
+				c.JSON(http.StatusOK, gin.H{
+					"status":  200,
+					"message": r,
+				})
+			default:
+				c.JSON(http.StatusBadRequest, gin.H{
+					"status":  400,
+					"message": "formato data non corretto",
+				})
+			}
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  400,
+				"message": "formato data non corretto",
 			})
-
-		default:
-			panic(err)
 		}
 	}
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -8,12 +9,18 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
 
-	"pdgt-covid/models"
 	"pdgt-covid/controllers"
-
-	// importare: "github.com/edoardo-conti/pdgt-covid/models"
-	// importare: "github.com/edoardo-conti/pdgt-covid/controllers"
+	"pdgt-covid/models"
 )
+
+type response1 struct {
+	Status   int    `json:"status"`
+	Messagge string `json:"message"`
+}
+type response2 struct {
+	Status   int      `json:"status"`
+	Messagge []string `json:"message"`
+}
 
 func main() {
 	port := os.Getenv("PORT")
@@ -29,17 +36,25 @@ func main() {
 
 	// endpoint: /
 	router.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status":  200,
-			"message": "Benvenuto su PDGT-COVID!",
-		})
+		str := `{"status": 200, "message": "Benvenuto su PDGT-COVID! [Developed by Edoardo C.]"}`
+		res := response1{}
+		json.Unmarshal([]byte(str), &res)
+
+		c.JSON(http.StatusOK, res)
+	})
+
+	router.GET("/andamento", func(c *gin.Context) {
+		str := `{"status": 200, "message": ["/andamento/nazionale", "/andamento/regionale"]}`
+		res := response2{}
+		json.Unmarshal([]byte(str), &res)
+
+		c.JSON(http.StatusOK, res)
 	})
 
 	// endpoint: /nazione
-	router.GET("/nazione", controllers.NationalTrend)
-
+	router.GET("/andamento/nazionale", controllers.NationalTrend)
 	// endpoint: /nazione/:bydate (todo)
-	router.GET("/nazione/:bydate", controllers.NationalTrendByDate)
+	router.GET("/andamento/nazionale/:bydate", controllers.NationalTrendByDate)
 
 	router.Run(":" + port)
 }
