@@ -7,13 +7,13 @@ import (
 	"net/http"
 	
 	"github.com/gin-gonic/gin"
-	"github.com/edoardo-conti/pdgt-covid/models"
-	
+	"pdgt-covid/models"
+
 	// importare: "github.com/edoardo-conti/pdgt-covid/models"
 )
 
-func nationalTrend(c *gin.Context) {
-	rows, err := db.Query("SELECT * FROM nazione")
+func NationalTrend(c *gin.Context) {
+	rows, err := models.DB.Query("SELECT * FROM nazione")
 	if err != nil {
 		log.Fatalf("Query: %v", err)
 	}
@@ -21,10 +21,10 @@ func nationalTrend(c *gin.Context) {
 
 	//got := []nazione{}
 
-	var nazioni []models.nationalTrend
+	var nazioni []models.NationalTrend
 	for rows.Next() {
 		// c := new(Course)
-		var r models.nationalTrend
+		var r models.NationalTrend
 		err = rows.Scan(
 			&r.Data,
 			&r.Stato,
@@ -45,7 +45,7 @@ func nationalTrend(c *gin.Context) {
 		if err != nil {
 			log.Fatalf("Scan: %v", err)
 		}
-		nazioni = append(nazioni, nationalTrend{r.Data, r.Stato, r.RicoveratiConSintomi, r.TerapiaIntensiva, r.TotaleOspedalizzati, r.IsolamentoDomiciliare, r.TotalePositivi, r.VariazioneTotalePositivi, r.NuoviPositivi, r.DimessiGuariti, r.Deceduti, r.TotaleCasi, r.Tamponi, r.CasiTestati, r.NoteIT, r.NoteEN})
+		nazioni = append(nazioni, models.NationalTrend{r.Data, r.Stato, r.RicoveratiConSintomi, r.TerapiaIntensiva, r.TotaleOspedalizzati, r.IsolamentoDomiciliare, r.TotalePositivi, r.VariazioneTotalePositivi, r.NuoviPositivi, r.DimessiGuariti, r.Deceduti, r.TotaleCasi, r.Tamponi, r.CasiTestati, r.NoteIT, r.NoteEN})
 
 		//got = append(got, r)
 	}
@@ -59,14 +59,14 @@ func nationalTrend(c *gin.Context) {
 	})
 }
 
-func nationalTrendByDate(c *gin.Context) {
+func NationalTrendByDate(c *gin.Context) {
 	nazioneDate := c.Params.ByName("bydate")
 
 	if nazioneDate != "" {
 		data := "2020-02-28"
-		var r nationalTrend
+		var r models.NationalTrend
 
-		row := db.QueryRow("SELECT * FROM nazione WHERE data=$1", data)
+		row := models.DB.QueryRow("SELECT * FROM nazione WHERE data=$1", data)
 		switch err := row.Scan(
 			&r.Data,
 			&r.Stato,

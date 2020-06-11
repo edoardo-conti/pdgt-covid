@@ -8,9 +8,9 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
 
-	"github.com/edoardo-conti/pdgt-covid/models"
-	"github.com/edoardo-conti/pdgt-covid/controllers"
-	
+	"pdgt-covid/models"
+	"pdgt-covid/controllers"
+
 	// importare: "github.com/edoardo-conti/pdgt-covid/models"
 	// importare: "github.com/edoardo-conti/pdgt-covid/controllers"
 )
@@ -22,7 +22,7 @@ func main() {
 	}
 
 	// db
-	models.connectDatabase()
+	models.ConnectDatabase()
 
 	router := gin.New()
 	router.Use(gin.Logger())
@@ -36,7 +36,7 @@ func main() {
 	})
 
 	// endpoint: /nazione
-	router.GET("/nazione", controllers.nationalTrend)
+	router.GET("/nazione", controllers.NationalTrend)
 
 	// endpoint: /nazione/:bydate (todo)
 	router.GET("/nazione/:bydate", controllers.NationalTrendByDate)

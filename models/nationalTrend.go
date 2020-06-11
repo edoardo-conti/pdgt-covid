@@ -2,7 +2,7 @@ package models
 
 import "database/sql"
 
-type nationalTrend struct {
+type NationalTrend struct {
 	Data                     string         `json:"data"`
 	Stato                    string         `json:"stato"`
 	RicoveratiConSintomi     int            `json:"ricoverati_con_sintomi"`
