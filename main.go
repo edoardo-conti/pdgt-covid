@@ -34,8 +34,12 @@ func main() {
 	// endpoint utenti
 	router.GET("/utenti", controllers.GetAllUsers)
 	router.GET("/utenti/:byusername", controllers.GetUserByUsername)
-	router.POST("/utenti/registrazione", controllers.UserSignup)
+	router.POST("/utenti/signup", controllers.UserSignup)
+	router.POST("/utenti/login", controllers.UserSignin)
 	router.DELETE("/utenti/:byusername", controllers.UserDelete)
+
+	// Handle error response when a route is not defined
+	router.NoRoute(models.HandleNoRoute)
 
 	router.Run(":" + port)
 }

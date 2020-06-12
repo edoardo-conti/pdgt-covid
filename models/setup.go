@@ -26,9 +26,18 @@ func ConnectDatabase() {
 
 //HandleWelcome ...
 func HandleWelcome(c *gin.Context) {
+	//(todo) verificare se necessario: c.Header("Content-Type", "application/json")
 	c.JSON(http.StatusOK, gin.H{
 		"status":  200,
 		"message": "Benvenuto su PDGT-COVID!",
 		"author":  "Edoardo Conti [278717]",
+	})
+}
+
+//HandleNoRoute ...
+func HandleNoRoute(c *gin.Context) {
+	c.JSON(http.StatusNotFound, gin.H{
+		"status":  404,
+		"message": "risorsa non disponibile",
 	})
 }

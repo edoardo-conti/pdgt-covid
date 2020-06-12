@@ -13,6 +13,7 @@ import (
 )
 
 // GetAllUsers ...
+// @returns var -> descrizione param and 2nd var -> desc
 func GetAllUsers(c *gin.Context) {
 	rows, err := models.DB.Query("SELECT * FROM users")
 	if err != nil {
@@ -83,7 +84,7 @@ func UserSignup(c *gin.Context) {
 		// check valid fields
 		if newUserInput.Username != "" && newUserInput.Password != "" {
 			// hash password
-			hashedpassword, err := bcrypt.GenerateFromPassword([]byte(newUserInput.Password), 14)
+			hashedpassword, err := bcrypt.GenerateFromPassword([]byte(newUserInput.Password), bcrypt.DefaultCost)
 			if err != nil {
 				log.Fatalf("Error hashing password: %q", err)
 			}
@@ -116,13 +117,68 @@ func UserSignup(c *gin.Context) {
 			}
 
 		} else {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"status":  400,
+			c.JSON(http.StatusNotAcceptable, gin.H{
+				"status":  406,
 				"message": "richiesti entrambi i campi",
 			})
 		}
 
 	} else {
+		// (todo) try: c.JSON(http.StatusUnprocessableEntity, "Invalid json provided")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  400,
+			"message": "formato richiesta POST non corretta",
+		})
+	}
+}
+
+//UserSignin ...
+func UserSignin(c *gin.Context) {
+	// Validate input
+	var newUserLogin models.User
+	if err := c.ShouldBindJSON(&newUserLogin); err == nil {
+		// check valid fields
+		if newUserLogin.Username != "" && newUserLogin.Password != "" {
+			// check if user exist
+			var u models.User
+			row := models.DB.QueryRow("SELECT password FROM users WHERE username=$1", newUserLogin.Username)
+			switch err := row.Scan(&u.Password); err {
+			case sql.ErrNoRows:
+				// (todo) da correggere per sicurezza: users not found
+				c.JSON(http.StatusBadRequest, gin.H{
+					"status":  400,
+					"message": "utente non trovato",
+				})
+			case nil:
+				// user exist
+
+				// Get the hashed password from the saved document
+				hashedPassword := []byte(u.Password)
+				// Get the password provided in the request.body
+				password := []byte(newUserLogin.Password)
+
+				// check user password
+				if bcrypt.CompareHashAndPassword(hashedPassword, password) == nil {
+					// credenziali corrette, procedo
+					// (todo): creazione JWT token
+				} else {
+					// credenziali errate
+					c.JSON(http.StatusUnauthorized, gin.H{
+						"status":  401,
+						"message": "credenziali errate",
+					})
+				}
+			default:
+				// gestire errore (todo)
+			}
+		} else {
+			c.JSON(http.StatusNotAcceptable, gin.H{
+				"status":  406,
+				"message": "richiesti entrambi i campi",
+			})
+		}
+	} else {
+		// (todo) valutare: c.JSON(http.StatusUnprocessableEntity, "Invalid json provided")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  400,
 			"message": "formato richiesta POST non corretta",
@@ -143,8 +199,8 @@ func UserDelete(c *gin.Context) {
 		switch err := row.Scan(&u.Username, &u.Password); err {
 		case sql.ErrNoRows:
 			// users not found
-			c.JSON(http.StatusBadRequest, gin.H{
-				"status":  400,
+			c.JSON(http.StatusNotFound, gin.H{
+				"status":  404,
 				"message": "username non registrato nel database",
 			})
 		case nil:
@@ -168,8 +224,8 @@ func UserDelete(c *gin.Context) {
 		}
 
 	} else {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"status":  400,
+		c.JSON(http.StatusNotAcceptable, gin.H{
+			"status":  406,
 			"message": "campo vuoto non accettato",
 		})
 	}
