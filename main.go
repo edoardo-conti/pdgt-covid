@@ -34,6 +34,8 @@ func main() {
 	// endpoint utenti
 	router.GET("/utenti", controllers.GetAllUsers)
 	router.GET("/utenti/:byusername", controllers.GetUserByUsername)
+	router.POST("/utenti/registrazione", controllers.UserSignup)
+	router.DELETE("/utenti/:byusername", controllers.UserDelete)
 
 	router.Run(":" + port)
 }

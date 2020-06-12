@@ -2,6 +2,7 @@ package models
 
 import "database/sql"
 
+//NationalTrend ...
 type NationalTrend struct {
 	Data                     string         `json:"data"`
 	Stato                    string         `json:"stato"`
@@ -9,7 +10,7 @@ type NationalTrend struct {
 	TerapiaIntensiva         int            `json:"terapia_intensiva"`
 	TotaleOspedalizzati      int            `json:"totale_ospedalizzati"`
 	IsolamentoDomiciliare    int            `json:"isolamento_domiciliare"`
-	TotalePositivi           int            `json:"totale_oositivi"`
+	TotalePositivi           int            `json:"totale_positivi"`
 	VariazioneTotalePositivi int            `json:"variazione_totale_positivi"`
 	NuoviPositivi            int            `json:"nuovi_positivi"`
 	DimessiGuariti           int            `json:"dimessi_guariti"`
