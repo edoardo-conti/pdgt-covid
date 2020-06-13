@@ -8,6 +8,7 @@ import (
 	_ "github.com/lib/pq"
 
 	"pdgt-covid/controllers"
+	"pdgt-covid/middlewares"
 	"pdgt-covid/models"
 )
 
@@ -32,13 +33,13 @@ func main() {
 	router.GET("/andamento/nazionale/:bydate", controllers.NationalTrendByDate)
 
 	// endpoint utenti
-	router.GET("/utenti", controllers.GetAllUsers)
-	router.GET("/utenti/:byusername", controllers.GetUserByUsername)
+	router.GET("/utenti", middlewares.AuthMiddleware(), controllers.GetAllUsers)
+	router.GET("/utenti/:byusername", middlewares.AuthMiddleware(), controllers.GetUserByUsername)
 	router.POST("/utenti/signup", controllers.UserSignup)
 	router.POST("/utenti/login", controllers.UserSignin)
-	router.DELETE("/utenti/:byusername", controllers.UserDelete)
+	router.DELETE("/utenti/:byusername", middlewares.AuthMiddleware(), controllers.UserDelete)
 
-	// Handle error response when a route is not defined
+	// endpoint 404
 	router.NoRoute(models.HandleNoRoute)
 
 	router.Run(":" + port)

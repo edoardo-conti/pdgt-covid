@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 
+	"pdgt-covid/middlewares"
 	"pdgt-covid/models"
 )
 
@@ -160,7 +161,19 @@ func UserSignin(c *gin.Context) {
 				// check user password
 				if bcrypt.CompareHashAndPassword(hashedPassword, password) == nil {
 					// credenziali corrette, procedo
-					// (todo): creazione JWT token
+					token, err := middlewares.CreateToken(newUserLogin.Username)
+					if err != nil {
+						c.JSON(http.StatusUnprocessableEntity, gin.H{
+							"status":  422,
+							"message": err.Error(),
+						})
+					} else {
+						c.JSON(http.StatusOK, gin.H{
+							"status":  200,
+							"message": "utente loggato con successo",
+							"token":   token,
+						})
+					}
 				} else {
 					// credenziali errate
 					c.JSON(http.StatusUnauthorized, gin.H{
@@ -170,6 +183,7 @@ func UserSignin(c *gin.Context) {
 				}
 			default:
 				// gestire errore (todo)
+				log.Println("errore")
 			}
 		} else {
 			c.JSON(http.StatusNotAcceptable, gin.H{
@@ -178,9 +192,8 @@ func UserSignin(c *gin.Context) {
 			})
 		}
 	} else {
-		// (todo) valutare: c.JSON(http.StatusUnprocessableEntity, "Invalid json provided")
-		c.JSON(http.StatusBadRequest, gin.H{
-			"status":  400,
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"status":  422,
 			"message": "formato richiesta POST non corretta",
 		})
 	}
