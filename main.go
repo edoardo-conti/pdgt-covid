@@ -32,6 +32,8 @@ func main() {
 	router.GET("/andamento/nazionale", controllers.NationalTrend)
 	router.GET("/andamento/nazionale/:bydate", controllers.NationalTrendByDate)
 
+	router.GET("/andamento/regionale", controllers.RegionalTrend)
+
 	// endpoint utenti
 	router.GET("/utenti", middlewares.AuthMiddleware(), controllers.GetAllUsers)
 	router.GET("/utenti/:byusername", middlewares.AuthMiddleware(), controllers.GetUserByUsername)
