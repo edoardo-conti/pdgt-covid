@@ -28,10 +28,9 @@ func main() {
 	router.GET("/", models.HandleWelcome)
 
 	// endpoint andamenti
-	router.GET("/andamento", controllers.HandleAndamento)
+	router.GET("/andamento", models.HandleAndamento)
 	router.GET("/andamento/nazionale", controllers.NationalTrend)
 	router.GET("/andamento/nazionale/:bydate", controllers.NationalTrendByDate)
-
 	router.GET("/andamento/regionale", controllers.RegionalTrend)
 
 	// endpoint utenti

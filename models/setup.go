@@ -2,12 +2,18 @@ package models
 
 import (
 	"database/sql"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
 )
+
+type response struct {
+	Status   int      `json:"status"`
+	Messagge []string `json:"message"`
+}
 
 //DB ...
 var DB *sql.DB
@@ -32,6 +38,15 @@ func HandleWelcome(c *gin.Context) {
 		"message": "Benvenuto su PDGT-COVID!",
 		"author":  "Edoardo Conti [278717]",
 	})
+}
+
+// HandleAndamento ...
+func HandleAndamento(c *gin.Context) {
+	str := `{"status": 400, "message": ["/andamento/nazionale", "/andamento/regionale"]}`
+	res := response{}
+	json.Unmarshal([]byte(str), &res)
+
+	c.JSON(http.StatusBadRequest, res)
 }
 
 //HandleNoRoute ...

@@ -1,6 +1,10 @@
 package models
 
-import "database/sql"
+import (
+	"database/sql"
+	"encoding/json"
+	"time"
+)
 
 //RegionalTrend ...
 type RegionalTrend struct {
@@ -24,4 +28,10 @@ type RegionalTrend struct {
 	CasiTestati              sql.NullInt64  `json:"casi_testati"`
 	NoteIT                   sql.NullString `json:"note_it"`
 	NoteEN                   sql.NullString `json:"note_en"`
+}
+
+//RegionalTrendCollect ...
+type RegionalTrendCollect struct {
+	Data time.Time       `json:"data"`
+	Info json.RawMessage `json:"info"`
 }
