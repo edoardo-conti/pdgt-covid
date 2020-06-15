@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"database/sql"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -302,63 +304,93 @@ func DeleteNationalTrend(c *gin.Context) {
 	}
 }
 
-func generateUpdateQuery() string {
-	query := "UPDATE nazione SET"
+//generateUpdateQuery utile a generare la query (stringa) per l'aggiornamento di un trend nazionale giornaliero
+func generateUpdateQuery(ntu models.NationalTrendPATCH, dttu string) (query string, err error) {
+	query = "UPDATE nazione SET"
 
-	query += "WHERE data=$1;"
+	// marshal the struct
+	fieldsToUpdate, err := json.Marshal(ntu)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// fmt.Println(string(fieldsToUpdate))
 
-	return query
+	// iterate through the body of the post req.
+	var v interface{}
+	json.Unmarshal(fieldsToUpdate, &v)
+	data := v.(map[string]interface{})
+
+	// check body lenght
+	counter := 0
+
+	for k, v := range data {
+		//fmt.Println(k, v)
+		if k != "variazione_totale_positivi" && v.(float64) < 0 {
+			return "", errors.New("valore campo negativo non permesso")
+		}
+		query += " " + fmt.Sprintf("%v", k) + "=" + fmt.Sprintf("%v", v) + ","
+
+		counter++
+	}
+
+	if counter == 0 {
+		return "", errors.New("body vuoto")
+	}
+
+	// get rid of last AND from the query
+	query = strings.TrimRight(query, ",")
+
+	// add the where clause
+	query += " WHERE data='" + dttu + "';"
+
+	return query, nil
 }
 
 //PatchNationalTrend ...
 func PatchNationalTrend(c *gin.Context) {
 	// get parameter
-	trendToUpdate := strings.TrimSpace(c.Params.ByName("bydate"))
+	dataTrendToUpdate := strings.TrimSpace(c.Params.ByName("bydate"))
 
 	// check valid field
 	dateCheck := regexp.MustCompile("((19|20)\\d\\d)-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])")
-	if trendToUpdate != "" && dateCheck.MatchString(trendToUpdate) {
+	if dataTrendToUpdate != "" && dateCheck.MatchString(dataTrendToUpdate) {
 		// check if trend (date) exist
-		if rowExists("SELECT 1 FROM nazione WHERE data=$1", trendToUpdate) {
+		if rowExists("SELECT 1 FROM nazione WHERE data=$1", dataTrendToUpdate) {
 			// trend on that date exist
 
 			// check BODY request
 			var newTrendUpdate models.NationalTrendPATCH
 			if err := c.ShouldBindJSON(&newTrendUpdate); err == nil {
+				// logging struct with variable names
+				// fmt.Printf("%+v\n", newTrendUpdate)
 
-				// logging
-				fmt.Printf("%+v\n", newTrendUpdate)
+				upQuery, err1 := generateUpdateQuery(newTrendUpdate, dataTrendToUpdate)
+				if err1 == nil {
+					// query generata con successo!
+					fmt.Println(upQuery)
 
-				/*
-					sqlStatement := `
-					UPDATE users
-					SET first_name = $2, last_name = $3
-					WHERE id = $1;`
-					_, err = db.Exec(sqlStatement, 1, "NewFirst", "NewLast")
-					if err != nil {
-					  panic(err)
-					}
-				*/
-
-				// get generated query
-				/*
-					upQuery := generateUpdateQuery()
-					res, err := models.DB.Exec(upQuery)
-					if err == nil {
-						count, err := res.RowsAffected()
-						if err == nil {
+					res, err2 := models.DB.Exec(upQuery)
+					if err2 == nil {
+						count, err3 := res.RowsAffected()
+						if err3 == nil {
 							if count == 1 {
 								c.JSON(http.StatusOK, gin.H{
 									"status":  200,
-									"message": "trend in data " + trendToUpdate + " aggiornato con successo",
-									"info":    "/andamento/nazionale/data/" + trendToUpdate,
+									"message": "trend in data " + dataTrendToUpdate + " aggiornato con successo",
+									"info":    "/andamento/nazionale/data/" + dataTrendToUpdate,
 								})
 							}
 						}
 					} else {
 						// gestire errore (todo)
 					}
-				*/
+				} else {
+					//fmt.Println("errore, uno dei valori è negativo")
+					c.JSON(http.StatusNotAcceptable, gin.H{
+						"status":  406,
+						"message": "uno dei parametri dei campi non è conforme",
+					})
+				}
 			} else {
 				c.JSON(http.StatusBadRequest, gin.H{
 					"status":  400,
@@ -369,13 +401,13 @@ func PatchNationalTrend(c *gin.Context) {
 			// trend don't exist on that date
 			c.JSON(http.StatusBadRequest, gin.H{
 				"status":  400,
-				"message": "trend in data " + trendToUpdate + " non presente nel database",
+				"message": "trend in data " + dataTrendToUpdate + " non presente nel database",
 			})
 		}
 	} else {
 		c.JSON(http.StatusNotAcceptable, gin.H{
 			"status":  406,
-			"message": "parametro non conforme",
+			"message": "url non conforme",
 		})
 	}
 }
