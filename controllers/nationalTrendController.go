@@ -122,3 +122,43 @@ func NationalTrendByDate(c *gin.Context) {
 		}
 	}
 }
+
+// NationalTrendByPicco ...
+func NationalTrendByPicco(c *gin.Context) {
+	var r models.NationalTrend
+
+	row := models.DB.QueryRow("SELECT * FROM nazione WHERE nuovi_positivi=(select max(nuovi_positivi) from nazione)")
+	switch err := row.Scan(
+		&r.Data,
+		&r.Stato,
+		&r.RicoveratiConSintomi,
+		&r.TerapiaIntensiva,
+		&r.TotaleOspedalizzati,
+		&r.IsolamentoDomiciliare,
+		&r.TotalePositivi,
+		&r.VariazioneTotalePositivi,
+		&r.NuoviPositivi,
+		&r.DimessiGuariti,
+		&r.Deceduti,
+		&r.TotaleCasi,
+		&r.Tamponi,
+		&r.CasiTestati,
+		&r.NoteIT,
+		&r.NoteEN); err {
+	case sql.ErrNoRows:
+		c.JSON(http.StatusOK, gin.H{
+			"status":  200,
+			"message": "trend data richiesta non disponibile",
+		})
+	case nil:
+		c.JSON(http.StatusOK, gin.H{
+			"status": 200,
+			"data":   r,
+		})
+	default:
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  400,
+			"message": "formato data non corretto",
+		})
+	}
+}

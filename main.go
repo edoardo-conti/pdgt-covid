@@ -30,8 +30,14 @@ func main() {
 	// endpoint andamenti
 	router.GET("/andamento", models.HandleAndamento)
 	router.GET("/andamento/nazionale", controllers.NationalTrend)
-	router.GET("/andamento/nazionale/:bydate", controllers.NationalTrendByDate)
-	router.GET("/andamento/regionale", controllers.RegionalTrend)
+	router.GET("/andamento/nazionale/data/:bydate", controllers.NationalTrendByDate)
+	router.GET("/andamento/nazionale/picco", controllers.NationalTrendByPicco)
+
+	router.GET("/andamento/regionale", controllers.RegionalTrendHandler(1))
+	router.GET("/andamento/regionale/data/:bydata", controllers.RegionalTrendHandler(2))
+	router.GET("/andamento/regionale/regione/:byregid", controllers.RegionalTrendHandler(3))
+	router.GET("/andamento/regionale/picco/", controllers.RegionalTrendHandler(4))
+	router.GET("/andamento/regionale/picco/:byregid", controllers.RegionalTrendHandler(5))
 
 	// endpoint utenti
 	router.GET("/utenti", middlewares.AuthMiddleware(), controllers.GetAllUsers)
