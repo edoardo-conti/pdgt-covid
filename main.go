@@ -32,6 +32,9 @@ func main() {
 	router.GET("/andamento/nazionale", controllers.NationalTrend)
 	router.GET("/andamento/nazionale/data/:bydate", controllers.NationalTrendByDate)
 	router.GET("/andamento/nazionale/picco", controllers.NationalTrendByPicco)
+	router.POST("/andamento/nazionale", controllers.AddNationalTrend)
+	router.DELETE("/andamento/nazionale/data/:bydate", controllers.DeleteNationalTrend)
+	router.PATCH("/andamento/nazionale/data/:bydate", controllers.PatchNationalTrend)
 
 	router.GET("/andamento/regionale", controllers.RegionalTrendHandler(1))
 	router.GET("/andamento/regionale/data/:bydata", controllers.RegionalTrendHandler(2))
