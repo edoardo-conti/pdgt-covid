@@ -4,12 +4,14 @@ import (
 	"log"
 	"os"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	_ "github.com/lib/pq"
 
 	"pdgt-covid/controllers"
 	"pdgt-covid/middlewares"
 	"pdgt-covid/models"
+
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -23,6 +25,14 @@ func main() {
 
 	router := gin.New()
 	router.Use(gin.Logger())
+	// fare riferimento a https://github.com/gin-contrib/cors
+	//router.Use(cors.Default())
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "POST", "OPTIONS", "PUT"},
+		AllowHeaders:     []string{"*"},
+		AllowCredentials: true,
+	}))
 
 	// endpoint iniziale
 	router.GET("/", models.HandleWelcome)
