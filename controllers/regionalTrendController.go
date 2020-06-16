@@ -129,11 +129,18 @@ func RegionalTrendHandler(mode int) gin.HandlerFunc {
 				counter++
 			}
 
-			c.JSON(http.StatusOK, gin.H{
-				"status": 200,
-				"count":  counter,
-				"data":   regioniCollect,
-			})
+			if counter > 0 {
+				c.JSON(http.StatusOK, gin.H{
+					"status": 200,
+					"count":  counter,
+					"data":   regioniCollect,
+				})
+			} else {
+				c.JSON(http.StatusNotFound, gin.H{
+					"status":  404,
+					"message": "andamento in data " + c.Params.ByName("bydata") + " non presente",
+				})
+			}
 		} else {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"status":  400,

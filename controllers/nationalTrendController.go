@@ -177,26 +177,27 @@ func rowExists(query string, args ...interface{}) bool {
 	return exists
 }
 
-//todo: controllare validazione post
-func checkNewTrendInput(nti models.NationalTrendPOST) bool {
-	check := false
+//checkAddTrendFields ...
+func checkAddTrendFields(ntp models.NationalTrendPOST) bool {
+	ret := false
 
-	if nti.Data != "" &&
-		nti.RicoveratiConSintomi >= 0 &&
-		nti.TerapiaIntensiva >= 0 &&
-		nti.TotaleOspedalizzati >= 0 &&
-		nti.IsolamentoDomiciliare >= 0 &&
-		nti.TotalePositivi >= 0 &&
-		nti.NuoviPositivi >= 0 &&
-		nti.DimessiGuariti >= 0 &&
-		nti.Deceduti >= 0 &&
-		nti.TotaleCasi >= 0 &&
-		nti.Tamponi >= 0 &&
-		nti.CasiTestati >= 0 {
-		check = true
+	// variazione_totale_positivi unico campo che può essere negativo
+	// si controllano tutti i restanti per verificare che siano positivi
+	if ntp.RicoveratiConSintomi >= 0 &&
+		ntp.TerapiaIntensiva >= 0 &&
+		ntp.TotaleOspedalizzati >= 0 &&
+		ntp.IsolamentoDomiciliare >= 0 &&
+		ntp.TotalePositivi >= 0 &&
+		ntp.NuoviPositivi >= 0 &&
+		ntp.DimessiGuariti >= 0 &&
+		ntp.Deceduti >= 0 &&
+		ntp.TotaleCasi >= 0 &&
+		ntp.Tamponi >= 0 &&
+		ntp.CasiTestati >= 0 {
+		ret = true
 	}
 
-	return check
+	return ret
 }
 
 //AddNationalTrend ...
@@ -211,7 +212,7 @@ func AddNationalTrend(c *gin.Context) {
 		//check := checkNewTrendInput(newTrendInput)
 		dateCheck := regexp.MustCompile("((19|20)\\d\\d)-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])")
 		//if check && newTrendInput.Data != "" && dateCheck.MatchString(newTrendInput.Data) {
-		if newTrendInput.Data != "" && dateCheck.MatchString(newTrendInput.Data) {
+		if newTrendInput.Data != "" && dateCheck.MatchString(newTrendInput.Data) && checkAddTrendFields(newTrendInput) {
 			// check if trend already exist with the same date
 			if rowExists("SELECT 1 FROM nazione WHERE data=$1", newTrendInput.Data) {
 				// trend on that date already registered
@@ -252,14 +253,14 @@ func AddNationalTrend(c *gin.Context) {
 		} else {
 			c.JSON(http.StatusNotAcceptable, gin.H{
 				"status":  406,
-				"message": "richiesti tutti i campi nei rispettivi formati",
+				"message": "uno o più parametri forniti non sono conformi al formato richiesto",
 			})
 		}
 	} else {
 		// (todo) try: c.JSON(http.StatusUnprocessableEntity, "Invalid json provided")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  400,
-			"message": "formato richiesta POST non corretta",
+			"message": "formato richiesta POST non corretta, potrebbero mancare dei campi o formati non corretti",
 		})
 	}
 }
@@ -367,7 +368,7 @@ func PatchNationalTrend(c *gin.Context) {
 				upQuery, err1 := generateUpdateQuery(newTrendUpdate, dataTrendToUpdate)
 				if err1 == nil {
 					// query generata con successo!
-					fmt.Println(upQuery)
+					//fmt.Println(upQuery)
 
 					res, err2 := models.DB.Exec(upQuery)
 					if err2 == nil {
