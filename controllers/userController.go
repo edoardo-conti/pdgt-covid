@@ -23,6 +23,8 @@ func GetAllUsers(c *gin.Context) {
 	defer rows.Close()
 
 	var users []models.User
+	avatarURLBase := "https://avatars.dicebear.com/api/initials/"
+	avatarURL := ""
 	counter := 0
 
 	for rows.Next() {
@@ -31,7 +33,9 @@ func GetAllUsers(c *gin.Context) {
 		if err != nil {
 			log.Fatalf("Scan: %v", err)
 		}
-		users = append(users, models.User{u.Username, u.Password})
+		avatarURL = avatarURLBase + string([]rune(u.Username)[0]) + ".svg"
+
+		users = append(users, models.User{u.Username, u.Password, avatarURL})
 
 		counter++
 	}
@@ -51,6 +55,7 @@ func GetUserByUsername(c *gin.Context) {
 	if usrname != "" {
 		// controllo validità del parametro (todo)
 		var u models.User
+		var uc models.User
 
 		row := models.DB.QueryRow("SELECT * FROM users WHERE username=$1", usrname)
 		switch err := row.Scan(&u.Username, &u.Password); err {
@@ -60,9 +65,12 @@ func GetUserByUsername(c *gin.Context) {
 				"message": "utente richiesto non disponibile",
 			})
 		case nil:
+			avatarURL := "https://avatars.dicebear.com/api/initials/" + string([]rune(u.Username)[0]) + ".svg"
+			uc = models.User{u.Username, u.Password, avatarURL}
+
 			c.JSON(http.StatusOK, gin.H{
 				"status": 200,
-				"data":   u,
+				"data":   uc,
 			})
 		default:
 			c.JSON(http.StatusBadRequest, gin.H{
