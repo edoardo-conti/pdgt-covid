@@ -102,8 +102,8 @@ func NationalTrendByDate(c *gin.Context) {
 				&r.NoteIT,
 				&r.NoteEN); err {
 			case sql.ErrNoRows:
-				c.JSON(http.StatusOK, gin.H{
-					"status":  200,
+				c.JSON(http.StatusNotFound, gin.H{
+					"status":  404,
 					"message": "trend data richiesta non disponibile",
 				})
 			case nil:
