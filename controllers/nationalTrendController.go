@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -181,20 +182,45 @@ func rowExists(query string, args ...interface{}) bool {
 func checkAddTrendFields(ntp models.NationalTrendPOST) bool {
 	ret := false
 
-	// variazione_totale_positivi unico campo che può essere negativo
-	// si controllano tutti i restanti per verificare che siano positivi
-	if ntp.RicoveratiConSintomi >= 0 &&
-		ntp.TerapiaIntensiva >= 0 &&
-		ntp.TotaleOspedalizzati >= 0 &&
-		ntp.IsolamentoDomiciliare >= 0 &&
-		ntp.TotalePositivi >= 0 &&
-		ntp.NuoviPositivi >= 0 &&
-		ntp.DimessiGuariti >= 0 &&
-		ntp.Deceduti >= 0 &&
-		ntp.TotaleCasi >= 0 &&
-		ntp.Tamponi >= 0 &&
-		ntp.CasiTestati >= 0 {
-		ret = true
+	TerapiaIntensiva, eti := strconv.Atoi(ntp.TerapiaIntensiva)
+	RicoveratiConSintomi, ers := strconv.Atoi(ntp.RicoveratiConSintomi)
+	TotaleOspedalizzati, eto := strconv.Atoi(ntp.TotaleOspedalizzati)
+	IsolamentoDomiciliare, eid := strconv.Atoi(ntp.IsolamentoDomiciliare)
+	TotalePositivi, etp := strconv.Atoi(ntp.TotalePositivi)
+	NuoviPositivi, enp := strconv.Atoi(ntp.NuoviPositivi)
+	DimessiGuariti, edg := strconv.Atoi(ntp.DimessiGuariti)
+	Deceduti, ed := strconv.Atoi(ntp.Deceduti)
+	TotaleCasi, etc := strconv.Atoi(ntp.TotaleCasi)
+	Tamponi, et := strconv.Atoi(ntp.Tamponi)
+	CasiTestati, ect := strconv.Atoi(ntp.CasiTestati)
+
+	// verifica che le stringhe siano numeriche
+	if eti == nil &&
+		ers == nil &&
+		eto == nil &&
+		eid == nil &&
+		etp == nil &&
+		enp == nil &&
+		edg == nil &&
+		ed == nil &&
+		etc == nil &&
+		et == nil &&
+		ect == nil {
+		// variazione_totale_positivi unico campo che può essere negativo
+		// si controllano tutti i restanti per verificare che siano positivi
+		if RicoveratiConSintomi >= 0 &&
+			TerapiaIntensiva >= 0 &&
+			TotaleOspedalizzati >= 0 &&
+			IsolamentoDomiciliare >= 0 &&
+			TotalePositivi >= 0 &&
+			NuoviPositivi >= 0 &&
+			DimessiGuariti >= 0 &&
+			Deceduti >= 0 &&
+			TotaleCasi >= 0 &&
+			Tamponi >= 0 &&
+			CasiTestati >= 0 {
+			ret = true
+		}
 	}
 
 	return ret
@@ -207,6 +233,8 @@ func AddNationalTrend(c *gin.Context) {
 	if err := c.ShouldBindJSON(&newTrendInput); err == nil {
 		// trim string fields
 		newTrendInput.Data = strings.TrimSpace(newTrendInput.Data)
+
+		//fmt.Printf("%+v\n", newTrendInput)
 
 		// check valid fields
 		//check := checkNewTrendInput(newTrendInput)
@@ -223,6 +251,7 @@ func AddNationalTrend(c *gin.Context) {
 				})
 			} else {
 				// trend not found, can proceed
+				// todo
 				_, err = models.DB.Exec("INSERT INTO nazione VALUES ($1, 'ITA', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15);",
 					newTrendInput.Data,
 					newTrendInput.RicoveratiConSintomi,
