@@ -127,14 +127,14 @@ func RegionalTrendHandler(mode string) gin.HandlerFunc {
 				// zero record restituiti
 				c.JSON(http.StatusNotFound, gin.H{
 					"status":  404,
-					"message": "Errore, la richiesta non ha prodotto risultati.",
+					"message": "Errore: la richiesta non ha prodotto risultati.",
 				})
 			}
 		} else {
 			// query risultante nulla
 			c.JSON(http.StatusBadRequest, gin.H{
 				"status":  400,
-				"message": "Errore formulazione richiesta.",
+				"message": "Errore: formulazione richiesta non corretta.",
 			})
 		}
 	}

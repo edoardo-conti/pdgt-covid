@@ -132,13 +132,13 @@ func NationalTrendByDate(c *gin.Context) {
 				// errore default
 				c.JSON(http.StatusBadGateway, gin.H{
 					"status":  502,
-					"message": "Errore inaspettato, si prega di riprovare più tardi.",
+					"message": "Errore: risultato inaspettato, si prega di riprovare più tardi.",
 				})
 			}
 		} else {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"status":  400,
-				"message": "Formato data fornita non corretto.",
+				"message": "Errore: formato data fornita non corretto.",
 				"format":  "es. 2020-04-12",
 			})
 		}
@@ -171,7 +171,7 @@ func NationalTrendByPicco(c *gin.Context) {
 	case sql.ErrNoRows:
 		c.JSON(http.StatusNotFound, gin.H{
 			"status":  404,
-			"message": "Errore, al momento non è possibile trovare il record picco.",
+			"message": "Errore: al momento non è possibile trovare il record picco.",
 		})
 	case nil:
 		c.JSON(http.StatusOK, gin.H{
@@ -181,7 +181,7 @@ func NationalTrendByPicco(c *gin.Context) {
 	default:
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  400,
-			"message": "Errore, si prega di riprovare più tardi.",
+			"message": "Errore: si prega di riprovare più tardi.",
 		})
 	}
 }
@@ -194,7 +194,7 @@ func rowExists(query string, args ...interface{}) bool {
 	query = fmt.Sprintf("SELECT exists (%s)", query)
 	err := models.DB.QueryRow(query, args...).Scan(&exists)
 	if err != nil && err != sql.ErrNoRows {
-		log.Fatalf("Errore nella verifica della query: '%s' - %v", args, err)
+		log.Fatalf("Errore: verifica della query fallita: '%s' - %v", args, err)
 	}
 
 	return exists
@@ -296,7 +296,7 @@ func AddNationalTrend(c *gin.Context) {
 					// errore default
 					c.JSON(http.StatusBadGateway, gin.H{
 						"status":  502,
-						"message": "Errore inaspettato, si prega di riprovare più tardi.",
+						"message": "Errore: risultato inaspettato, si prega di riprovare più tardi.",
 					})
 				} else {
 					c.JSON(http.StatusOK, gin.H{
@@ -309,13 +309,13 @@ func AddNationalTrend(c *gin.Context) {
 		} else {
 			c.JSON(http.StatusNotAcceptable, gin.H{
 				"status":  406,
-				"message": "Errore, uno o più parametri forniti non sono conformi al formato richiesto.",
+				"message": "Errore: uno o più parametri forniti non sono conformi al formato richiesto.",
 			})
 		}
 	} else {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
 			"status":  422,
-			"message": "Errore, formato richiesta POST non corretta (campi omessi o formati non corretti).",
+			"message": "Errore: formato richiesta POST non corretta (campi omessi o formati non corretti).",
 		})
 	}
 }
@@ -345,20 +345,20 @@ func DeleteNationalTrend(c *gin.Context) {
 			} else {
 				c.JSON(http.StatusBadGateway, gin.H{
 					"status":  502,
-					"message": "Errore inaspettato, si prega di riprovare più tardi.",
+					"message": "Errore: risultato inaspettato, si prega di riprovare più tardi.",
 				})
 			}
 		} else {
 			// trend non disponibile in data richiesta
 			c.JSON(http.StatusBadRequest, gin.H{
 				"status":  400,
-				"message": "Errore, trend in data " + trendToDelete + " non presente nel database.",
+				"message": "Errore: trend in data " + trendToDelete + " non presente nel database.",
 			})
 		}
 	} else {
 		c.JSON(http.StatusNotAcceptable, gin.H{
 			"status":  406,
-			"message": "Errore, parametro fornito non corretto.",
+			"message": "Errore: parametro fornito non corretto.",
 		})
 	}
 }
@@ -439,32 +439,32 @@ func PatchNationalTrend(c *gin.Context) {
 					} else {
 						c.JSON(http.StatusBadGateway, gin.H{
 							"status":  502,
-							"message": "Errore inaspettato, si prega di riprovare più tardi.",
+							"message": "Errore: risultato inaspettato, si prega di riprovare più tardi.",
 						})
 					}
 				} else {
 					c.JSON(http.StatusNotAcceptable, gin.H{
 						"status":  406,
-						"message": "Errore, uno dei parametri forniti non risulta essere corretto.",
+						"message": "Errore: uno dei parametri forniti non risulta essere corretto.",
 					})
 				}
 			} else {
 				c.JSON(http.StatusBadRequest, gin.H{
 					"status":  400,
-					"message": "Errore, formato richiesta PATCH non corretta.",
+					"message": "Errore: formato richiesta PATCH non corretta.",
 				})
 			}
 		} else {
 			// trend in data selezionata non presente
 			c.JSON(http.StatusNotFound, gin.H{
 				"status":  404,
-				"message": "Trend in data " + dataTrendToUpdate + " non presente nel database.",
+				"message": "Errore: trend in data " + dataTrendToUpdate + " non presente nel database.",
 			})
 		}
 	} else {
 		c.JSON(http.StatusNotAcceptable, gin.H{
 			"status":  406,
-			"message": "Errore, formato data fornita non corretto.",
+			"message": "Errore: formato data fornita non corretto.",
 		})
 	}
 }

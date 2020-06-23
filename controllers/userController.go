@@ -131,30 +131,24 @@ func UserSignup(c *gin.Context) {
 						"info":    "Per visualizzare: /utenti/" + newUserInput.Username,
 					})
 				}
-			case nil:
+			default:
 				// utente già registrato nel database con l'username fornito
 				c.JSON(http.StatusBadRequest, gin.H{
 					"status":  400,
-					"message": "Username già registrato nel database.",
-				})
-			default:
-				// errore default
-				c.JSON(http.StatusBadGateway, gin.H{
-					"status":  502,
-					"message": "Errore inaspettato, si prega di riprovare più tardi.",
+					"message": "Errore: utente " + u.Username + " già registrato nel database.",
 				})
 			}
 		} else {
 			// uno o entrambi i campi sono vuoti
 			c.JSON(http.StatusNotAcceptable, gin.H{
 				"status":  406,
-				"message": "Richiesti entrambi i campi.",
+				"message": "Errore: richiesti entrambi i campi.",
 			})
 		}
 	} else {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
 			"status":  422,
-			"message": "Formato richiesta POST non corretta.",
+			"message": "Errore: formato richiesta POST non corretta.",
 		})
 	}
 }
@@ -177,9 +171,9 @@ func UserSignin(c *gin.Context) {
 				 * non esiste nel database si restituisce un messaggio d'errore generico
 				 * per evitare possibili attacci bruteforce sul nome utente.
 				 */
-				c.JSON(http.StatusBadRequest, gin.H{
-					"status":  400,
-					"message": "Errore, credenziali errate.",
+				c.JSON(http.StatusUnauthorized, gin.H{
+					"status":  401,
+					"message": "Errore: credenziali errate, si prega di riprovare.",
 				})
 			case nil:
 				// utente presente nel db
@@ -197,7 +191,7 @@ func UserSignin(c *gin.Context) {
 						// imprevisto nella generazione del token
 						c.JSON(http.StatusUnprocessableEntity, gin.H{
 							"status":  422,
-							"message": "Errore, " + err.Error(),
+							"message": "Errore: " + err.Error(),
 						})
 					} else {
 						c.JSON(http.StatusOK, gin.H{
@@ -210,27 +204,27 @@ func UserSignin(c *gin.Context) {
 					// credenziali errate, messaggio restituito con http status 'Unauthorized'
 					c.JSON(http.StatusUnauthorized, gin.H{
 						"status":  401,
-						"message": "Errore, credenziali errate.",
+						"message": "Errore: credenziali errate, si prega di riprovare.",
 					})
 				}
 			default:
 				// errore default
 				c.JSON(http.StatusBadGateway, gin.H{
 					"status":  502,
-					"message": "Errore inaspettato, si prega di riprovare più tardi.",
+					"message": "Errore: risultato inaspettato, si prega di riprovare più tardi.",
 				})
 			}
 		} else {
 			// uno o entrambi i campi sono vuoti
 			c.JSON(http.StatusNotAcceptable, gin.H{
 				"status":  406,
-				"message": "Richiesti entrambi i campi.",
+				"message": "Errore: richiesti entrambi i campi.",
 			})
 		}
 	} else {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
 			"status":  422,
-			"message": "Formato richiesta POST non corretta.",
+			"message": "Errore: formato richiesta POST non corretta.",
 		})
 	}
 }
@@ -269,20 +263,20 @@ func UserDelete(c *gin.Context) {
 				// gestire errore
 				c.JSON(http.StatusBadRequest, gin.H{
 					"status":  400,
-					"message": "Errore, si prega di riprovare più tardi.",
+					"message": "Errore: si prega di riprovare più tardi.",
 				})
 			}
 		default:
 			// errore default
 			c.JSON(http.StatusBadGateway, gin.H{
 				"status":  502,
-				"message": "Errore inaspettato, si prega di riprovare più tardi.",
+				"message": "Errore: risultato inaspettato, si prega di riprovare più tardi.",
 			})
 		}
 	} else {
 		c.JSON(http.StatusNotAcceptable, gin.H{
 			"status":  406,
-			"message": "Errore, campo vuoto non accettato.",
+			"message": "Errore: campo vuoto non accettato.",
 		})
 	}
 }

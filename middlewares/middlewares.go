@@ -68,10 +68,10 @@ func CheckTokenValid(r *http.Request) (bool, error) {
 			return false, err
 		}
 		return claims["admin"].(bool), nil
-	} else {
-		// error
-		return false, err
 	}
+
+	// error
+	return false, err
 }
 
 //AuthMiddleware middleware che funge da intermediario tra le richieste HTTP e gli handler ad essi associati
