@@ -11,35 +11,10 @@ import (
 )
 
 /*
-func IsValidRegion(region string) bool {
-	switch region {
-	case
-		"Abruzzo",
-		"Basilicata",
-		"P.A. Bolzano",
-		"Calabria",
-		"Campania",
-		"Emilia-Romagna",
-		"Friuli Venezia Giulia",
-		"Lazio",
-		"Liguria",
-		"Lombardia",
-		"Marche",
-		"Molise",
-		"Piemonte",
-		"Puglia",
-		"Sardegna",
-		"Sicilia",
-		"Toscana",
-		"P.A. Trento",
-		"Umbria",
-		"Veneto":
-		return true
-	}
-	return false
-}
-*/
-
+ * variabile utile a raggruppare la prima parte di una query SQL comune a diverse richieste ( “write less, do more" )
+ * la query in questione genera e restituisce un oggetto json popolato con i campi interessati
+ * raggruppato dalla data di rilevazione dell'andamento, ottenendo trend aggregati per data
+ */
 var queryFirstPart string = `SELECT data, json_agg(json_build_object('stato', stato,
 							'codice_regione', codice_regione,
 							'denominazione_regione', denominazione_regione,
@@ -61,38 +36,50 @@ var queryFirstPart string = `SELECT data, json_agg(json_build_object('stato', st
 							'note_en', note_en)) as records 
 							FROM regioni`
 
-//RegionalTrendHandler ...
-func RegionalTrendHandler(mode int) gin.HandlerFunc {
+//RegionalTrendHandler metodo dedicato alla gestione delle richieste GET riguardo al trend regionale
+func RegionalTrendHandler(mode string) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
-		// todo: idea per multiplexare richieste differenti con una singola query a stringhe composte
+		/*
+		 * multiplexing delle richieste GET suddiviso dal selettore di modalità 'mode'
+		 * metodo sfruttato per servire con un'unica query di base tutti i GET degli endpoind trend regionale
+		 */
+
+		// preparazione query effettiva
 		query := ""
-		if mode == 1 {
+
+		// selettore di modalità
+		if mode == "/" {
 			// query NON filtrata
 			query = queryFirstPart + " GROUP BY regioni.data ORDER BY regioni.data ASC;"
-		} else if mode == 2 {
-			// filtrato per data
+		} else if mode == "/data/:" {
+			// filtraggio per data
 			data := c.Params.ByName("bydata")
-			// check validità parametro
+
+			// check validità parametro (es. 2020-02-24)
 			dateCheck := regexp.MustCompile("((19|20)\\d\\d)-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])")
 			if data != "" && dateCheck.MatchString(data) {
-				// valido
+				// se data in formato corretto si genera la query
 				query = queryFirstPart + " WHERE data='" + data + "' GROUP BY regioni.data ORDER BY regioni.data ASC;"
 			}
-		} else if mode == 3 {
-			// filtrato per id regione
+		} else if mode == "/regione/:" {
+			// filtraggio per id regione
 			regID := c.Params.ByName("byregid")
+
 			// check validità parametro
 			if regIDint, err := strconv.Atoi(regID); err == nil {
 				if regIDint >= 0 && regIDint <= 22 {
+					// generazione query
 					query = queryFirstPart + " WHERE codice_regione='" + regID + "' GROUP BY regioni.data ORDER BY regioni.data ASC;"
 				}
 			}
-		} else if mode == 4 {
-			// filtrato per picco
+		} else if mode == "/picco" {
+			// filtraggio per picco
+			// generazione query sfruttando funzione sql MAX() per il calcolo dei nuovi positivi totali, ergo picco richiesto
 			query = queryFirstPart + " WHERE nuovi_positivi=(SELECT MAX(nuovi_positivi) FROM regioni) GROUP BY regioni.data ORDER BY regioni.data ASC;"
-		} else if mode == 5 {
-			// filtrato per picco di regione
+		} else if mode == "/picco/:" {
+			// filtraggio per picco di regione
 			regID := c.Params.ByName("byregid")
+
 			// check validità parametro
 			if regIDint, err := strconv.Atoi(regID); err == nil {
 				if regIDint >= 0 && regIDint <= 22 {
@@ -103,6 +90,7 @@ func RegionalTrendHandler(mode int) gin.HandlerFunc {
 
 		// check se la querySQL è stata composta correttamente
 		if query != "" {
+			// inoltro query
 			rows, err := models.DB.Query(query)
 			if err != nil {
 				log.Fatalf("Query: %v", err)
@@ -112,9 +100,7 @@ func RegionalTrendHandler(mode int) gin.HandlerFunc {
 			// counter per il conteggio dei record
 			counter := 0
 
-			// testing
-			//log.Println(query)
-
+			// struttura dedicata alla "collezzione" dei trend regionali
 			var regioniCollect []models.RegionalTrendCollect
 			for rows.Next() {
 				var r models.RegionalTrendCollect
@@ -124,11 +110,13 @@ func RegionalTrendHandler(mode int) gin.HandlerFunc {
 					log.Fatalf("scan error: %v", err)
 				}
 
-				regioniCollect = append(regioniCollect, models.RegionalTrendCollect{r.Data, r.Info})
+				// si popola la struttura collezzione dei record restituiti dalla query
+				regioniCollect = append(regioniCollect, models.RegionalTrendCollect{Data: r.Data, Info: r.Info})
 
 				counter++
 			}
 
+			// verifica dei record ottenuti
 			if counter > 0 {
 				c.JSON(http.StatusOK, gin.H{
 					"status": 200,
@@ -136,52 +124,20 @@ func RegionalTrendHandler(mode int) gin.HandlerFunc {
 					"data":   regioniCollect,
 				})
 			} else {
+				// zero record restituiti
 				c.JSON(http.StatusNotFound, gin.H{
 					"status":  404,
-					"message": "andamento in data " + c.Params.ByName("bydata") + " non presente",
+					"message": "Errore, la richiesta non ha prodotto risultati.",
 				})
 			}
 		} else {
+			// query risultante nulla
 			c.JSON(http.StatusBadRequest, gin.H{
 				"status":  400,
-				"message": "errore formulazione richiesta",
+				"message": "Errore formulazione richiesta.",
 			})
 		}
 	}
 
 	return gin.HandlerFunc(fn)
-}
-
-// RegionalTrend ...
-func RegionalTrend(c *gin.Context) {
-	// todo: idea per multiplexare richieste differenti con una singola query a stringhe composte
-	query := queryFirstPart + " GROUP BY regioni.data ORDER BY regioni.data ASC;"
-	rows, err := models.DB.Query(query)
-	if err != nil {
-		log.Fatalf("Query: %v", err)
-	}
-	defer rows.Close()
-
-	// counter per il conteggio dei record
-	counter := 0
-
-	var regioniCollect []models.RegionalTrendCollect
-	for rows.Next() {
-		var r models.RegionalTrendCollect
-
-		err = rows.Scan(&r.Data, &r.Info)
-		if err != nil {
-			log.Fatalf("scan error: %v", err)
-		}
-
-		regioniCollect = append(regioniCollect, models.RegionalTrendCollect{r.Data, r.Info})
-
-		counter++
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"status": 200,
-		"count":  counter,
-		"data":   regioniCollect,
-	})
 }

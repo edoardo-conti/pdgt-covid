@@ -15,18 +15,20 @@ import (
 )
 
 func main() {
+	// verifica della variabile d'ambiente che specifica la porta utilizzata per l'erogazione dal webservice
 	port := os.Getenv("PORT")
 	if port == "" {
 		log.Fatal("$PORT must be set")
 	}
 
-	// db
+	// connessione al database Heroku Postgres
 	models.ConnectDatabase()
 
+	// inizializzazione router con tecnologia gin
 	router := gin.New()
 	router.Use(gin.Logger())
-	// fare riferimento a https://github.com/gin-contrib/cors
-	//router.Use(cors.Default())
+
+	// abilitazione richieste cors, per future modifiche fare riferimento a: https://github.com/gin-contrib/cors
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
@@ -34,33 +36,32 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	// endpoint iniziale
-	router.GET("/", models.HandleWelcome)
-
-	// endpoint andamenti
-	router.GET("/andamento", models.HandleAndamento)
-	router.GET("/andamento/nazionale", controllers.NationalTrend)
-	router.GET("/andamento/nazionale/data/:bydate", controllers.NationalTrendByDate)
-	router.GET("/andamento/nazionale/picco", controllers.NationalTrendByPicco)
-	router.POST("/andamento/nazionale", controllers.AddNationalTrend)
-	router.DELETE("/andamento/nazionale/data/:bydate", controllers.DeleteNationalTrend)
-	router.PATCH("/andamento/nazionale/data/:bydate", controllers.PatchNationalTrend)
-
-	router.GET("/andamento/regionale", controllers.RegionalTrendHandler(1))
-	router.GET("/andamento/regionale/data/:bydata", controllers.RegionalTrendHandler(2))
-	router.GET("/andamento/regionale/regione/:byregid", controllers.RegionalTrendHandler(3))
-	router.GET("/andamento/regionale/picco/", controllers.RegionalTrendHandler(4))
-	router.GET("/andamento/regionale/picco/:byregid", controllers.RegionalTrendHandler(5))
-
+	// endpoint iniziali
+	router.GET("/api", models.HandleWelcome)
+	router.GET("/api/trend", models.HandleAndamento)
+	// endpoint trend nazionali
+	router.GET("/api/trend/nazionale", controllers.NationalTrend)
+	router.GET("/api/trend/nazionale/data/:bydate", controllers.NationalTrendByDate)
+	router.GET("/api/trend/nazionale/picco", controllers.NationalTrendByPicco)
+	router.POST("/api/trend/nazionale", middlewares.AuthMiddleware(), controllers.AddNationalTrend)
+	router.DELETE("/api/trend/nazionale/data/:bydate", middlewares.AuthMiddleware(), controllers.DeleteNationalTrend)
+	router.PATCH("/api/trend/nazionale/data/:bydate", middlewares.AuthMiddleware(), controllers.PatchNationalTrend)
+	// endpoint trend regionali
+	router.GET("/api/trend/regionale", controllers.RegionalTrendHandler("/"))
+	router.GET("/api/trend/regionale/data/:bydata", controllers.RegionalTrendHandler("/data/:"))
+	router.GET("/api/trend/regionale/regione/:byregid", controllers.RegionalTrendHandler("/regione/:"))
+	router.GET("/api/trend/regionale/picco/", controllers.RegionalTrendHandler("/picco"))
+	router.GET("/api/trend/regionale/picco/:byregid", controllers.RegionalTrendHandler("/picco/:"))
 	// endpoint utenti
-	router.GET("/utenti", middlewares.AuthMiddleware(), controllers.GetAllUsers)
-	router.GET("/utenti/:byusername", middlewares.AuthMiddleware(), controllers.GetUserByUsername)
-	router.POST("/utenti/signup", controllers.UserSignup)
-	router.POST("/utenti/login", controllers.UserSignin)
-	router.DELETE("/utenti/:byusername", middlewares.AuthMiddleware(), controllers.UserDelete)
+	router.GET("/api/utenti", middlewares.AuthMiddleware(), controllers.GetAllUsers)
+	router.GET("/api/utenti/:byusername", middlewares.AuthMiddleware(), controllers.GetUserByUsername)
+	router.POST("/api/utenti/signup", middlewares.AuthMiddleware(), controllers.UserSignup)
+	router.POST("/api/utenti/login", controllers.UserSignin)
+	router.DELETE("/api/utenti/:byusername", middlewares.AuthMiddleware(), controllers.UserDelete)
 
 	// endpoint 404
 	router.NoRoute(models.HandleNoRoute)
 
+	// webservice...
 	router.Run(":" + port)
 }

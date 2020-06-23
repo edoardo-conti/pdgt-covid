@@ -13,26 +13,33 @@ import (
 	"pdgt-covid/models"
 )
 
-// GetAllUsers ...
-// @returns var -> descrizione param and 2nd var -> desc
+// GetAllUsers ottenere l'intera lista di utenti registrati nel sistema
 func GetAllUsers(c *gin.Context) {
+	// query SQL
 	rows, err := models.DB.Query("SELECT * FROM users")
 	if err != nil {
 		log.Fatalf("Query: %v", err)
 	}
 	defer rows.Close()
 
-	var users []models.User
+	/*
+	 * gestione degli avatar tramite servizio esterno che genera
+	 * l'immagine a partire dall'iniziale dell'username
+	 */
 	avatarURLBase := "https://avatars.dicebear.com/api/initials/"
 	avatarURL := ""
+
 	counter := 0
 
+	// array di strutture utenti per raccogliere i risultati della query
+	var users []models.User
 	for rows.Next() {
 		var u models.User
 		err = rows.Scan(&u.Username, &u.Password)
 		if err != nil {
 			log.Fatalf("Scan: %v", err)
 		}
+		// generazione URL avatar
 		avatarURL = avatarURLBase + string([]rune(u.Username)[0]) + ".svg"
 
 		users = append(users, models.User{u.Username, u.Password, avatarURL})
@@ -47,25 +54,30 @@ func GetAllUsers(c *gin.Context) {
 	})
 }
 
-//GetUserByUsername ...
+//GetUserByUsername ricerca di un utente nel database per username
 func GetUserByUsername(c *gin.Context) {
-	// get parameter
+	// si ricava il nome utente dal path dell'url RESTfull (:byusername)
 	usrname := c.Params.ByName("byusername")
 
+	// controllo veloce che il nome fornito non sia vuoto
 	if usrname != "" {
-		// controllo validità del parametro (todo)
 		var u models.User
+		// modello aggiuntivo utilizzato per l'integrazione dell'url dell'avatar
 		var uc models.User
 
+		// query SQL
 		row := models.DB.QueryRow("SELECT * FROM users WHERE username=$1", usrname)
 		switch err := row.Scan(&u.Username, &u.Password); err {
 		case sql.ErrNoRows:
-			c.JSON(http.StatusOK, gin.H{
-				"status":  200,
-				"message": "utente richiesto non disponibile",
+			// nessun record risultante
+			c.JSON(http.StatusNotFound, gin.H{
+				"status":  404,
+				"message": "Utente richiesto non presente nel database.",
 			})
 		case nil:
+			// generazione URL avatar
 			avatarURL := "https://avatars.dicebear.com/api/initials/" + string([]rune(u.Username)[0]) + ".svg"
+			// generazione struttura utente da restituire
 			uc = models.User{u.Username, u.Password, avatarURL}
 
 			c.JSON(http.StatusOK, gin.H{
@@ -75,157 +87,173 @@ func GetUserByUsername(c *gin.Context) {
 		default:
 			c.JSON(http.StatusBadRequest, gin.H{
 				"status":  400,
-				"message": "formato richiesta non corretto",
+				"message": "Errore nel risolvere la richiesta, riprova più tardi.",
 			})
 		}
 	}
 }
 
-//UserSignup ...
+//UserSignup metodo utile alla registrazione di un utente nel sistema
 func UserSignup(c *gin.Context) {
-	// Validate input
+	// variabile per la validazione dell'input
 	var newUserInput models.User
+	// ShouldBindJSON si occupa di effettuare il binding tra richiesta POST e struttura dati fornita
 	if err := c.ShouldBindJSON(&newUserInput); err == nil {
-		// trim fields
+		// trim: eliminazione di spazi vuoti all'inizio e alla fine delle stringhe
 		newUserInput.Username = strings.TrimSpace(newUserInput.Username)
 		newUserInput.Password = strings.TrimSpace(newUserInput.Password)
 
-		// check valid fields
+		// verifica che i campi risultanti non siano vuoti
 		if newUserInput.Username != "" && newUserInput.Password != "" {
-			// hash password
+			// generazione hash bcrypt della password fornita
 			hashedpassword, err := bcrypt.GenerateFromPassword([]byte(newUserInput.Password), bcrypt.DefaultCost)
 			if err != nil {
 				log.Fatalf("Error hashing password: %q", err)
 			}
 			newUserInput.Password = string(hashedpassword)
 
-			// check if username already exist
+			/*
+			 * prima di procedere con l'inserimento dell'utente nel database si
+			 * verifica che non esista già un utente con lo stesso username
+			 */
 			var u models.User
 			row := models.DB.QueryRow("SELECT * FROM users WHERE username=$1", newUserInput.Username)
 			switch err := row.Scan(&u.Username, &u.Password); err {
 			case sql.ErrNoRows:
-				// users not found, can proceed
+				// utente non presente, si può continuare con la registrazione
 				_, err = models.DB.Exec("INSERT INTO users (username, password) VALUES ($1, $2);", newUserInput.Username, newUserInput.Password)
 				if err != nil {
 					panic(err)
 				} else {
 					c.JSON(http.StatusOK, gin.H{
 						"status":  200,
-						"message": "utente registrato con successo",
-						"info":    "per visualizzare: /utenti/" + newUserInput.Username,
+						"message": "Utente registrato con successo.",
+						"info":    "Per visualizzare: /utenti/" + newUserInput.Username,
 					})
 				}
 			case nil:
-				// user with that username already registered
+				// utente già registrato nel database con l'username fornito
 				c.JSON(http.StatusBadRequest, gin.H{
 					"status":  400,
-					"message": "username già registrato nel database",
+					"message": "Username già registrato nel database.",
 				})
 			default:
-				// gestire errore (todo)
-			}
-
-		} else {
-			c.JSON(http.StatusNotAcceptable, gin.H{
-				"status":  406,
-				"message": "richiesti entrambi i campi",
-			})
-		}
-
-	} else {
-		// (todo) try: c.JSON(http.StatusUnprocessableEntity, "Invalid json provided")
-		c.JSON(http.StatusBadRequest, gin.H{
-			"status":  400,
-			"message": "formato richiesta POST non corretta",
-		})
-	}
-}
-
-//UserSignin ...
-func UserSignin(c *gin.Context) {
-	// Validate input
-	var newUserLogin models.User
-	if err := c.ShouldBindJSON(&newUserLogin); err == nil {
-		// check valid fields
-		if newUserLogin.Username != "" && newUserLogin.Password != "" {
-			// check if user exist
-			var u models.User
-			row := models.DB.QueryRow("SELECT password FROM users WHERE username=$1", newUserLogin.Username)
-			switch err := row.Scan(&u.Password); err {
-			case sql.ErrNoRows:
-				// (todo) da correggere per sicurezza: users not found
-				c.JSON(http.StatusBadRequest, gin.H{
-					"status":  400,
-					"message": "utente non trovato",
+				// errore default
+				c.JSON(http.StatusBadGateway, gin.H{
+					"status":  502,
+					"message": "Errore inaspettato, si prega di riprovare più tardi.",
 				})
-			case nil:
-				// user exist
-
-				// Get the hashed password from the saved document
-				hashedPassword := []byte(u.Password)
-				// Get the password provided in the request.body
-				password := []byte(newUserLogin.Password)
-
-				// check user password
-				if bcrypt.CompareHashAndPassword(hashedPassword, password) == nil {
-					// credenziali corrette, procedo
-					token, err := middlewares.CreateToken(newUserLogin.Username)
-					if err != nil {
-						c.JSON(http.StatusUnprocessableEntity, gin.H{
-							"status":  422,
-							"message": err.Error(),
-						})
-					} else {
-						c.JSON(http.StatusOK, gin.H{
-							"status":  200,
-							"message": "utente loggato con successo",
-							"token":   token,
-						})
-					}
-				} else {
-					// credenziali errate
-					c.JSON(http.StatusUnauthorized, gin.H{
-						"status":  401,
-						"message": "credenziali errate",
-					})
-				}
-			default:
-				// gestire errore (todo)
-				log.Println("errore")
 			}
 		} else {
+			// uno o entrambi i campi sono vuoti
 			c.JSON(http.StatusNotAcceptable, gin.H{
 				"status":  406,
-				"message": "richiesti entrambi i campi",
+				"message": "Richiesti entrambi i campi.",
 			})
 		}
 	} else {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
 			"status":  422,
-			"message": "formato richiesta POST non corretta",
+			"message": "Formato richiesta POST non corretta.",
 		})
 	}
 }
 
-//UserDelete ...
+//UserSignin metodo utile per accedere ai servizi come utente registrato
+func UserSignin(c *gin.Context) {
+	var newUserLogin models.User
+
+	// ShouldBindJSON si occupa di effettuare il binding tra richiesta POST e struttura dati fornita
+	if err := c.ShouldBindJSON(&newUserLogin); err == nil {
+		// verifica che i campi non siano vuoti
+		if newUserLogin.Username != "" && newUserLogin.Password != "" {
+			// verifica che l'utente esista nel database
+			var u models.User
+			row := models.DB.QueryRow("SELECT password FROM users WHERE username=$1", newUserLogin.Username)
+			switch err := row.Scan(&u.Password); err {
+			case sql.ErrNoRows:
+				/*
+				 * per questioni di sicurezza pur essendo a conoscenza che l'username
+				 * non esiste nel database si restituisce un messaggio d'errore generico
+				 * per evitare possibili attacci bruteforce sul nome utente.
+				 */
+				c.JSON(http.StatusBadRequest, gin.H{
+					"status":  400,
+					"message": "Errore, credenziali errate.",
+				})
+			case nil:
+				// utente presente nel db
+
+				// hash della password registrata nel db
+				hashedPassword := []byte(u.Password)
+				// password clear fornita nella richiesta POST
+				password := []byte(newUserLogin.Password)
+
+				// verifica dell'hashing delle password sfruttando metodo CompareHashAndPassword()
+				if bcrypt.CompareHashAndPassword(hashedPassword, password) == nil {
+					// credenziali corrette, si procede con la creazione del token che verrà in seguito restituito
+					token, err := middlewares.CreateToken(newUserLogin.Username)
+					if err != nil {
+						// imprevisto nella generazione del token
+						c.JSON(http.StatusUnprocessableEntity, gin.H{
+							"status":  422,
+							"message": "Errore, " + err.Error(),
+						})
+					} else {
+						c.JSON(http.StatusOK, gin.H{
+							"status":  200,
+							"message": "Utente " + newUserLogin.Username + " loggato con successo.",
+							"token":   token,
+						})
+					}
+				} else {
+					// credenziali errate, messaggio restituito con http status 'Unauthorized'
+					c.JSON(http.StatusUnauthorized, gin.H{
+						"status":  401,
+						"message": "Errore, credenziali errate.",
+					})
+				}
+			default:
+				// errore default
+				c.JSON(http.StatusBadGateway, gin.H{
+					"status":  502,
+					"message": "Errore inaspettato, si prega di riprovare più tardi.",
+				})
+			}
+		} else {
+			// uno o entrambi i campi sono vuoti
+			c.JSON(http.StatusNotAcceptable, gin.H{
+				"status":  406,
+				"message": "Richiesti entrambi i campi.",
+			})
+		}
+	} else {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"status":  422,
+			"message": "Formato richiesta POST non corretta.",
+		})
+	}
+}
+
+//UserDelete metodo dedicato all'eliminazione di un utente dal sistema
 func UserDelete(c *gin.Context) {
-	// get parameter
+	// si ricava il nome utente dal path dell'url RESTfull (:byusername)
 	usernameToDelete := strings.TrimSpace(c.Params.ByName("byusername"))
 
-	// check valid field
+	// verifica che il parametro fornito non sia vuoto
 	if usernameToDelete != "" {
-		// check if username exist
+		// verifica che l'utente con tale username esista nel db
 		var u models.User
 		row := models.DB.QueryRow("SELECT * FROM users WHERE username=$1", usernameToDelete)
 		switch err := row.Scan(&u.Username, &u.Password); err {
 		case sql.ErrNoRows:
-			// users not found
+			// utente non trovato
 			c.JSON(http.StatusNotFound, gin.H{
 				"status":  404,
-				"message": "username non registrato nel database",
+				"message": "Utente " + usernameToDelete + " non registrato nel database.",
 			})
 		case nil:
-			// user exist
+			// l'utente esiste, si procede il delete
 			res, err := models.DB.Exec("DELETE FROM users WHERE username=$1", usernameToDelete)
 			if err == nil {
 				count, err := res.RowsAffected()
@@ -233,21 +261,28 @@ func UserDelete(c *gin.Context) {
 					if count == 1 {
 						c.JSON(http.StatusOK, gin.H{
 							"status":  200,
-							"message": "utente eliminato dal database con successo",
+							"message": "Utente " + usernameToDelete + " eliminato dal database con successo.",
 						})
 					}
 				}
 			} else {
-				// gestire errore (todo)
+				// gestire errore
+				c.JSON(http.StatusBadRequest, gin.H{
+					"status":  400,
+					"message": "Errore, si prega di riprovare più tardi.",
+				})
 			}
 		default:
-			// gestire errore (todo)
+			// errore default
+			c.JSON(http.StatusBadGateway, gin.H{
+				"status":  502,
+				"message": "Errore inaspettato, si prega di riprovare più tardi.",
+			})
 		}
-
 	} else {
 		c.JSON(http.StatusNotAcceptable, gin.H{
 			"status":  406,
-			"message": "campo vuoto non accettato",
+			"message": "Errore, campo vuoto non accettato.",
 		})
 	}
 }

@@ -16,22 +16,23 @@ import (
 	"pdgt-covid/models"
 )
 
-// NationalTrend ...
+// NationalTrend gestione metodo GET riguardo al trend nazionale
 func NationalTrend(c *gin.Context) {
+	// query SQL
 	rows, err := models.DB.Query("SELECT * FROM nazione ORDER BY data ASC")
 	if err != nil {
 		log.Fatalf("Query: %v", err)
 	}
 	defer rows.Close()
 
-	//got := []nazione{}
-
+	// struttura dati dedicata allo storage dei record rilevati
 	var nazioni []models.NationalTrend
+
 	// counter per il conteggio dei record
 	counter := 0
 
+	// si cicla per ogni record ottenuto dalla query precedente
 	for rows.Next() {
-		// c := new(Course)
 		var r models.NationalTrend
 		err = rows.Scan(
 			&r.Data,
@@ -53,17 +54,15 @@ func NationalTrend(c *gin.Context) {
 		if err != nil {
 			log.Fatalf("Scan: %v", err)
 		}
+
+		// generazione oggetto di risposta
 		nazioni = append(nazioni, models.NationalTrend{r.Data, r.Stato, r.RicoveratiConSintomi, r.TerapiaIntensiva, r.TotaleOspedalizzati, r.IsolamentoDomiciliare, r.TotalePositivi, r.VariazioneTotalePositivi, r.NuoviPositivi, r.DimessiGuariti, r.Deceduti, r.TotaleCasi, r.Tamponi, r.CasiTestati, r.NoteIT, r.NoteEN})
 
 		// incremento del counter
 		counter++
-
-		//got = append(got, r)
 	}
 
-	//log.Println(got)
-	//nazioniBytes, _ := json.Marshal(&nazioni)
-
+	// restituzione trend nazionali rilevati dal database
 	c.JSON(http.StatusOK, gin.H{
 		"status": 200,
 		"count":  counter,
@@ -71,20 +70,19 @@ func NationalTrend(c *gin.Context) {
 	})
 }
 
-// NationalTrendByDate ...
+// NationalTrendByDate metodo dedicato al filtraggio dei trend nazionali per data
 func NationalTrendByDate(c *gin.Context) {
-	// get parameter
+	// parametro data ottenuto da path url
 	date := c.Params.ByName("bydate")
 
-	//fmt.Println("log: %s", date)
-
+	// verifica che il parametro non sia vuoto
 	if date != "" {
-		// controllo validità del parametro (es. 2020-04-30)
+		// controllo validità formato data (es. 2020-04-30)
 		dateCheck := regexp.MustCompile("((19|20)\\d\\d)-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])")
 		if dateCheck.MatchString(date) {
 			var r models.NationalTrend
 
-			row := models.DB.QueryRow("SELECT * FROM nazione WHERE data=$1", date)
+			row := models.DB.QueryRow("SELECT * FROM nazione WHERE data=$1 LIMIT 1", date)
 			switch err := row.Scan(
 				&r.Data,
 				&r.Stato,
@@ -103,35 +101,39 @@ func NationalTrendByDate(c *gin.Context) {
 				&r.NoteIT,
 				&r.NoteEN); err {
 			case sql.ErrNoRows:
+				// nessun record risultate
 				c.JSON(http.StatusNotFound, gin.H{
 					"status":  404,
-					"message": "trend data richiesta non disponibile",
+					"message": "Trend nazionale in data " + date + " non disponibile.",
 				})
 			case nil:
+				// trend risultante
 				c.JSON(http.StatusOK, gin.H{
 					"status": 200,
 					"data":   r,
 				})
 			default:
-				c.JSON(http.StatusBadRequest, gin.H{
-					"status":  400,
-					"message": "formato data non corretto",
+				// errore default
+				c.JSON(http.StatusBadGateway, gin.H{
+					"status":  502,
+					"message": "Errore inaspettato, si prega di riprovare più tardi.",
 				})
 			}
 		} else {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"status":  400,
-				"message": "formato data non corretto",
+				"message": "Formato data fornita non corretto.",
 				"format":  "es. 2020-04-12",
 			})
 		}
 	}
 }
 
-// NationalTrendByPicco ...
+// NationalTrendByPicco filtraggio trend nazionale per picco di nuovi positivi
 func NationalTrendByPicco(c *gin.Context) {
 	var r models.NationalTrend
 
+	// query SQL per la ricerca del massimo valore di nuovi_positivi (picco) tra i record registrati
 	row := models.DB.QueryRow("SELECT * FROM nazione WHERE nuovi_positivi=(select max(nuovi_positivi) from nazione)")
 	switch err := row.Scan(
 		&r.Data,
@@ -151,9 +153,9 @@ func NationalTrendByPicco(c *gin.Context) {
 		&r.NoteIT,
 		&r.NoteEN); err {
 	case sql.ErrNoRows:
-		c.JSON(http.StatusOK, gin.H{
-			"status":  200,
-			"message": "trend data richiesta non disponibile",
+		c.JSON(http.StatusNotFound, gin.H{
+			"status":  404,
+			"message": "Errore, al momento non è possibile trovare il record picco.",
 		})
 	case nil:
 		c.JSON(http.StatusOK, gin.H{
@@ -163,25 +165,30 @@ func NationalTrendByPicco(c *gin.Context) {
 	default:
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  400,
-			"message": "formato data non corretto",
+			"message": "Errore, si prega di riprovare più tardi.",
 		})
 	}
 }
 
+// rowExists metodo dedicato alla verifica rapida dell'esistenza di un record nel database
 func rowExists(query string, args ...interface{}) bool {
 	var exists bool
+
+	// si sfrutta funzione exists() SQL
 	query = fmt.Sprintf("SELECT exists (%s)", query)
 	err := models.DB.QueryRow(query, args...).Scan(&exists)
 	if err != nil && err != sql.ErrNoRows {
-		log.Fatalf("error checking if row exists '%s' %v", args, err)
+		log.Fatalf("Errore nella verifica della query: '%s' - %v", args, err)
 	}
+
 	return exists
 }
 
-//checkAddTrendFields ...
+//checkAddTrendFields metodo dedicato alla verifica dei parametri della richiesta POST di un trend nazionale
 func checkAddTrendFields(ntp models.NationalTrendPOST) bool {
 	ret := false
 
+	// conversione dei parametri da stringa ad intero
 	TerapiaIntensiva, eti := strconv.Atoi(ntp.TerapiaIntensiva)
 	RicoveratiConSintomi, ers := strconv.Atoi(ntp.RicoveratiConSintomi)
 	TotaleOspedalizzati, eto := strconv.Atoi(ntp.TotaleOspedalizzati)
@@ -194,7 +201,7 @@ func checkAddTrendFields(ntp models.NationalTrendPOST) bool {
 	Tamponi, et := strconv.Atoi(ntp.Tamponi)
 	CasiTestati, ect := strconv.Atoi(ntp.CasiTestati)
 
-	// verifica che le stringhe siano numeriche
+	// verifica che le stringhe convertite contengano numeri (isNaN)
 	if eti == nil &&
 		ers == nil &&
 		eto == nil &&
@@ -226,32 +233,32 @@ func checkAddTrendFields(ntp models.NationalTrendPOST) bool {
 	return ret
 }
 
-//AddNationalTrend ...
+//AddNationalTrend metodo dedicato alla gestione delle richieste POST per i trend nazionali
 func AddNationalTrend(c *gin.Context) {
-	// Validate input
 	var newTrendInput models.NationalTrendPOST
+
+	/*
+	 * bind tra sfruttura dati e json contenuti nel body della richiesta POST
+	 * in ogni campo della struttura dati 'NationalTrendPOST' è presente il tag 'binding:"required"'
+	 * per tanto ognuno di questi è necessario per concludere con successo un metodo POST
+	 */
 	if err := c.ShouldBindJSON(&newTrendInput); err == nil {
-		// trim string fields
+		// trim del campo data
 		newTrendInput.Data = strings.TrimSpace(newTrendInput.Data)
 
-		//fmt.Printf("%+v\n", newTrendInput)
-
-		// check valid fields
-		//check := checkNewTrendInput(newTrendInput)
+		// check dei campo data (es. 2020-02-24) e verifica dei campi tramite metodo checkAddTrendFields()
 		dateCheck := regexp.MustCompile("((19|20)\\d\\d)-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])")
-		//if check && newTrendInput.Data != "" && dateCheck.MatchString(newTrendInput.Data) {
 		if newTrendInput.Data != "" && dateCheck.MatchString(newTrendInput.Data) && checkAddTrendFields(newTrendInput) {
-			// check if trend already exist with the same date
+			// si verifica che non esista già un record con la stessa data sfruttando il metodo rowExists()
 			if rowExists("SELECT 1 FROM nazione WHERE data=$1", newTrendInput.Data) {
-				// trend on that date already registered
+				// trend in data richiesta già disponibile
 				c.JSON(http.StatusBadRequest, gin.H{
 					"status":  400,
-					"message": "trend in data " + newTrendInput.Data + " già registrato nel database",
-					"info":    "/andamento/nazionale/data/" + newTrendInput.Data,
+					"message": "Trend in data " + newTrendInput.Data + " già registrato nel database.",
+					"info":    "/api/trend/nazionale/data/" + newTrendInput.Data,
 				})
 			} else {
-				// trend not found, can proceed
-				// todo
+				// trend non trovato in data richiesta, si può procedere
 				_, err = models.DB.Exec("INSERT INTO nazione VALUES ($1, 'ITA', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15);",
 					newTrendInput.Data,
 					newTrendInput.RicoveratiConSintomi,
@@ -266,45 +273,48 @@ func AddNationalTrend(c *gin.Context) {
 					newTrendInput.TotaleCasi,
 					newTrendInput.Tamponi,
 					newTrendInput.CasiTestati,
-					"",
-					"",
+					nil,
+					nil,
 				)
 				if err != nil {
-					panic(err)
+					// errore default
+					c.JSON(http.StatusBadGateway, gin.H{
+						"status":  502,
+						"message": "Errore inaspettato, si prega di riprovare più tardi.",
+					})
 				} else {
 					c.JSON(http.StatusOK, gin.H{
 						"status":  200,
-						"message": "trend giornaliero registrato con successo",
-						"info":    "per visualizzare: /andamento/nazionale/data/" + newTrendInput.Data,
+						"message": "Trend giornaliero nazionale registrato con successo.",
+						"info":    "/api/trend/nazionale/data/" + newTrendInput.Data,
 					})
 				}
 			}
 		} else {
 			c.JSON(http.StatusNotAcceptable, gin.H{
 				"status":  406,
-				"message": "uno o più parametri forniti non sono conformi al formato richiesto",
+				"message": "Errore, uno o più parametri forniti non sono conformi al formato richiesto.",
 			})
 		}
 	} else {
-		// (todo) try: c.JSON(http.StatusUnprocessableEntity, "Invalid json provided")
-		c.JSON(http.StatusBadRequest, gin.H{
-			"status":  400,
-			"message": "formato richiesta POST non corretta, potrebbero mancare dei campi o formati non corretti",
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"status":  422,
+			"message": "Errore, formato richiesta POST non corretta (campi omessi o formati non corretti).",
 		})
 	}
 }
 
-//DeleteNationalTrend ...
+//DeleteNationalTrend metodo dedicato all'eliminazione di un trend nazionale rilevato in data fornita
 func DeleteNationalTrend(c *gin.Context) {
-	// get parameter
+	// si ricava la data del record da eliminare
 	trendToDelete := strings.TrimSpace(c.Params.ByName("bydate"))
 
-	// check valid field
+	// verifica validità parametro
 	dateCheck := regexp.MustCompile("((19|20)\\d\\d)-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])")
 	if trendToDelete != "" && dateCheck.MatchString(trendToDelete) {
-		// check if trend (date) exist
+		// si verifica se il trend in data selezionata esista
 		if rowExists("SELECT 1 FROM nazione WHERE data=$1", trendToDelete) {
-			// trend on that date exist
+			// in caso positivo si procede con l'eliminazione via query SQL
 			res, err := models.DB.Exec("DELETE FROM nazione WHERE data=$1", trendToDelete)
 			if err == nil {
 				count, err := res.RowsAffected()
@@ -312,93 +322,92 @@ func DeleteNationalTrend(c *gin.Context) {
 					if count == 1 {
 						c.JSON(http.StatusOK, gin.H{
 							"status":  200,
-							"message": "trend in data " + trendToDelete + " eliminato dal database con successo",
+							"message": "Trend in data " + trendToDelete + " eliminato dal database con successo.",
 						})
 					}
 				}
 			} else {
-				// gestire errore (todo)
+				c.JSON(http.StatusBadGateway, gin.H{
+					"status":  502,
+					"message": "Errore inaspettato, si prega di riprovare più tardi.",
+				})
 			}
 		} else {
-			// trend don't exist on that date
+			// trend non disponibile in data richiesta
 			c.JSON(http.StatusBadRequest, gin.H{
 				"status":  400,
-				"message": "trend in data " + trendToDelete + " non presente nel database",
+				"message": "Errore, trend in data " + trendToDelete + " non presente nel database.",
 			})
 		}
 	} else {
 		c.JSON(http.StatusNotAcceptable, gin.H{
 			"status":  406,
-			"message": "parametro non conforme",
+			"message": "Errore, parametro fornito non corretto.",
 		})
 	}
 }
 
-//generateUpdateQuery utile a generare la query (stringa) per l'aggiornamento di un trend nazionale giornaliero
+//generateUpdateQuery utile a generare dinamicamente la query dell'aggiornamento (patch) di un trend nazionale giornaliero
 func generateUpdateQuery(ntu models.NationalTrendPATCH, dttu string) (query string, err error) {
+	var v interface{}
+
+	// inizializzazione stringa query SQL
 	query = "UPDATE nazione SET"
 
-	// marshal the struct
+	// marshal ed unmarshal della struttura (utile per sfruttare tag 'omitempty')
 	fieldsToUpdate, err := json.Marshal(ntu)
 	if err != nil {
 		log.Fatal(err)
 	}
-	// fmt.Println(string(fieldsToUpdate))
-
-	// iterate through the body of the post req.
-	var v interface{}
 	json.Unmarshal(fieldsToUpdate, &v)
-	data := v.(map[string]interface{})
 
-	// check body lenght
+	// conteggio campi nel body
 	counter := 0
 
+	// scorrimento dei campi nel body della richiesta POST
+	data := v.(map[string]interface{})
 	for k, v := range data {
-		//fmt.Println(k, v)
 		if k != "variazione_totale_positivi" && v.(float64) < 0 {
 			return "", errors.New("valore campo negativo non permesso")
 		}
+
+		// composizione query SQL aggiungendo campo e valore direttamente da richiesta body
 		query += " " + fmt.Sprintf("%v", k) + "=" + fmt.Sprintf("%v", v) + ","
 
 		counter++
 	}
 
+	// verifica del numero di iterazioni
 	if counter == 0 {
 		return "", errors.New("body vuoto")
 	}
 
-	// get rid of last AND from the query
+	// rimozione dell'ultima virgola in eccesso dalla query generata dinamicamente
 	query = strings.TrimRight(query, ",")
-
-	// add the where clause
+	// aggiunta della clausola SQl WHERE
 	query += " WHERE data='" + dttu + "';"
 
 	return query, nil
 }
 
-//PatchNationalTrend ...
+//PatchNationalTrend metodo dedicato all'aggiornamento dei campi di un record pre-esistente nel database
 func PatchNationalTrend(c *gin.Context) {
-	// get parameter
+	// si ricava il parametro data
 	dataTrendToUpdate := strings.TrimSpace(c.Params.ByName("bydate"))
 
-	// check valid field
+	// verifica validità formato data
 	dateCheck := regexp.MustCompile("((19|20)\\d\\d)-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])")
 	if dataTrendToUpdate != "" && dateCheck.MatchString(dataTrendToUpdate) {
-		// check if trend (date) exist
+		// si verifica che il trend esista in data fornita
 		if rowExists("SELECT 1 FROM nazione WHERE data=$1", dataTrendToUpdate) {
-			// trend on that date exist
-
-			// check BODY request
+			// trend esiste, si procede
+			// verifica del body della richiesta PATCH sfruttando ShouldBindJSON()
 			var newTrendUpdate models.NationalTrendPATCH
 			if err := c.ShouldBindJSON(&newTrendUpdate); err == nil {
-				// logging struct with variable names
-				// fmt.Printf("%+v\n", newTrendUpdate)
-
+				// generazione dinamica della query SQL di aggiornamento
 				upQuery, err1 := generateUpdateQuery(newTrendUpdate, dataTrendToUpdate)
-				if err1 == nil {
-					// query generata con successo!
-					//fmt.Println(upQuery)
-
+				if err1 == nil && upQuery != "" {
+					// query generata con successo, si procedere inoltrando la richiesta
 					res, err2 := models.DB.Exec(upQuery)
 					if err2 == nil {
 						count, err3 := res.RowsAffected()
@@ -406,38 +415,40 @@ func PatchNationalTrend(c *gin.Context) {
 							if count == 1 {
 								c.JSON(http.StatusOK, gin.H{
 									"status":  200,
-									"message": "trend in data " + dataTrendToUpdate + " aggiornato con successo",
-									"info":    "/andamento/nazionale/data/" + dataTrendToUpdate,
+									"message": "Trend in data " + dataTrendToUpdate + " aggiornato con successo.",
+									"info":    "/api/trend/nazionale/data/" + dataTrendToUpdate,
 								})
 							}
 						}
 					} else {
-						// gestire errore (todo)
+						c.JSON(http.StatusBadGateway, gin.H{
+							"status":  502,
+							"message": "Errore inaspettato, si prega di riprovare più tardi.",
+						})
 					}
 				} else {
-					//fmt.Println("errore, uno dei valori è negativo")
 					c.JSON(http.StatusNotAcceptable, gin.H{
 						"status":  406,
-						"message": "uno dei parametri dei campi non è conforme",
+						"message": "Errore, uno dei parametri forniti non risulta essere corretto.",
 					})
 				}
 			} else {
 				c.JSON(http.StatusBadRequest, gin.H{
 					"status":  400,
-					"message": "formato richiesta PATCH non corretta",
+					"message": "Errore, formato richiesta PATCH non corretta.",
 				})
 			}
 		} else {
-			// trend don't exist on that date
-			c.JSON(http.StatusBadRequest, gin.H{
-				"status":  400,
-				"message": "trend in data " + dataTrendToUpdate + " non presente nel database",
+			// trend in data selezionata non presente
+			c.JSON(http.StatusNotFound, gin.H{
+				"status":  404,
+				"message": "Trend in data " + dataTrendToUpdate + " non presente nel database.",
 			})
 		}
 	} else {
 		c.JSON(http.StatusNotAcceptable, gin.H{
 			"status":  406,
-			"message": "url non conforme",
+			"message": "Errore, formato data fornita non corretto.",
 		})
 	}
 }

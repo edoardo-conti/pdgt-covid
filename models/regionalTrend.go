@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-//RegionalTrend ...
+// RegionalTrend struttura dati per la gestione di trend regionale del Covid-19
 type RegionalTrend struct {
 	Data                     string         `json:"data"`
 	Stato                    string         `json:"stato"`
@@ -30,7 +30,7 @@ type RegionalTrend struct {
 	NoteEN                   sql.NullString `json:"note_en"`
 }
 
-//RegionalTrendCollect ...
+// RegionalTrendCollect struttura dati per la gestione di trend regionale filtrato del Covid-19
 type RegionalTrendCollect struct {
 	Data time.Time       `json:"data"`
 	Info json.RawMessage `json:"info"`
