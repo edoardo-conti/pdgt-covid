@@ -56,7 +56,23 @@ func NationalTrend(c *gin.Context) {
 		}
 
 		// generazione oggetto di risposta
-		nazioni = append(nazioni, models.NationalTrend{r.Data, r.Stato, r.RicoveratiConSintomi, r.TerapiaIntensiva, r.TotaleOspedalizzati, r.IsolamentoDomiciliare, r.TotalePositivi, r.VariazioneTotalePositivi, r.NuoviPositivi, r.DimessiGuariti, r.Deceduti, r.TotaleCasi, r.Tamponi, r.CasiTestati, r.NoteIT, r.NoteEN})
+		nazioni = append(nazioni, models.NationalTrend{
+			Data:                     r.Data,
+			Stato:                    r.Stato,
+			RicoveratiConSintomi:     r.RicoveratiConSintomi,
+			TerapiaIntensiva:         r.TerapiaIntensiva,
+			TotaleOspedalizzati:      r.TotaleOspedalizzati,
+			IsolamentoDomiciliare:    r.IsolamentoDomiciliare,
+			TotalePositivi:           r.TotalePositivi,
+			VariazioneTotalePositivi: r.VariazioneTotalePositivi,
+			NuoviPositivi:            r.NuoviPositivi,
+			DimessiGuariti:           r.DimessiGuariti,
+			Deceduti:                 r.Deceduti,
+			TotaleCasi:               r.TotaleCasi,
+			Tamponi:                  r.Tamponi,
+			CasiTestati:              r.CasiTestati,
+			NoteIT:                   r.NoteIT,
+			NoteEN:                   r.NoteEN})
 
 		// incremento del counter
 		counter++

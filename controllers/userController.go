@@ -35,14 +35,14 @@ func GetAllUsers(c *gin.Context) {
 	var users []models.User
 	for rows.Next() {
 		var u models.User
-		err = rows.Scan(&u.Username, &u.Password)
+		err = rows.Scan(&u.Username, &u.Password, &u.IsAdmin)
 		if err != nil {
 			log.Fatalf("Scan: %v", err)
 		}
 		// generazione URL avatar
 		avatarURL = avatarURLBase + string([]rune(u.Username)[0]) + ".svg"
 
-		users = append(users, models.User{u.Username, u.Password, avatarURL})
+		users = append(users, models.User{Username: u.Username, Password: u.Password, IsAdmin: u.IsAdmin, Avatar: avatarURL})
 
 		counter++
 	}
@@ -67,7 +67,7 @@ func GetUserByUsername(c *gin.Context) {
 
 		// query SQL
 		row := models.DB.QueryRow("SELECT * FROM users WHERE username=$1", usrname)
-		switch err := row.Scan(&u.Username, &u.Password); err {
+		switch err := row.Scan(&u.Username, &u.Password, &u.IsAdmin); err {
 		case sql.ErrNoRows:
 			// nessun record risultante
 			c.JSON(http.StatusNotFound, gin.H{
@@ -78,7 +78,7 @@ func GetUserByUsername(c *gin.Context) {
 			// generazione URL avatar
 			avatarURL := "https://avatars.dicebear.com/api/initials/" + string([]rune(u.Username)[0]) + ".svg"
 			// generazione struttura utente da restituire
-			uc = models.User{u.Username, u.Password, avatarURL}
+			uc = models.User{Username: u.Username, Password: u.Password, IsAdmin: u.IsAdmin, Avatar: avatarURL}
 
 			c.JSON(http.StatusOK, gin.H{
 				"status": 200,
@@ -93,7 +93,7 @@ func GetUserByUsername(c *gin.Context) {
 	}
 }
 
-//UserSignup metodo utile alla registrazione di un utente nel sistema
+// UserSignup metodo utile alla registrazione di un utente nel sistema
 func UserSignup(c *gin.Context) {
 	// variabile per la validazione dell'input
 	var newUserInput models.User
@@ -121,7 +121,7 @@ func UserSignup(c *gin.Context) {
 			switch err := row.Scan(&u.Username, &u.Password); err {
 			case sql.ErrNoRows:
 				// utente non presente, si può continuare con la registrazione
-				_, err = models.DB.Exec("INSERT INTO users (username, password) VALUES ($1, $2);", newUserInput.Username, newUserInput.Password)
+				_, err = models.DB.Exec("INSERT INTO users (username, password, isadmin) VALUES ($1, $2, $3);", newUserInput.Username, newUserInput.Password, newUserInput.IsAdmin)
 				if err != nil {
 					panic(err)
 				} else {
@@ -169,8 +169,8 @@ func UserSignin(c *gin.Context) {
 		if newUserLogin.Username != "" && newUserLogin.Password != "" {
 			// verifica che l'utente esista nel database
 			var u models.User
-			row := models.DB.QueryRow("SELECT password FROM users WHERE username=$1", newUserLogin.Username)
-			switch err := row.Scan(&u.Password); err {
+			row := models.DB.QueryRow("SELECT password, isadmin FROM users WHERE username=$1", newUserLogin.Username)
+			switch err := row.Scan(&u.Password, &u.IsAdmin); err {
 			case sql.ErrNoRows:
 				/*
 				 * per questioni di sicurezza pur essendo a conoscenza che l'username
@@ -192,7 +192,7 @@ func UserSignin(c *gin.Context) {
 				// verifica dell'hashing delle password sfruttando metodo CompareHashAndPassword()
 				if bcrypt.CompareHashAndPassword(hashedPassword, password) == nil {
 					// credenziali corrette, si procede con la creazione del token che verrà in seguito restituito
-					token, err := middlewares.CreateToken(newUserLogin.Username)
+					token, err := middlewares.CreateToken(newUserLogin.Username, u.IsAdmin)
 					if err != nil {
 						// imprevisto nella generazione del token
 						c.JSON(http.StatusUnprocessableEntity, gin.H{
@@ -245,7 +245,7 @@ func UserDelete(c *gin.Context) {
 		// verifica che l'utente con tale username esista nel db
 		var u models.User
 		row := models.DB.QueryRow("SELECT * FROM users WHERE username=$1", usernameToDelete)
-		switch err := row.Scan(&u.Username, &u.Password); err {
+		switch err := row.Scan(&u.Username, &u.Password, &u.IsAdmin); err {
 		case sql.ErrNoRows:
 			// utente non trovato
 			c.JSON(http.StatusNotFound, gin.H{

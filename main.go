@@ -43,9 +43,9 @@ func main() {
 	router.GET("/api/trend/nazionale", controllers.NationalTrend)
 	router.GET("/api/trend/nazionale/data/:bydate", controllers.NationalTrendByDate)
 	router.GET("/api/trend/nazionale/picco", controllers.NationalTrendByPicco)
-	router.POST("/api/trend/nazionale", middlewares.AuthMiddleware(), controllers.AddNationalTrend)
-	router.DELETE("/api/trend/nazionale/data/:bydate", middlewares.AuthMiddleware(), controllers.DeleteNationalTrend)
-	router.PATCH("/api/trend/nazionale/data/:bydate", middlewares.AuthMiddleware(), controllers.PatchNationalTrend)
+	router.POST("/api/trend/nazionale", middlewares.AuthMiddleware(0), controllers.AddNationalTrend)
+	router.PATCH("/api/trend/nazionale/data/:bydate", middlewares.AuthMiddleware(1), controllers.PatchNationalTrend)
+	router.DELETE("/api/trend/nazionale/data/:bydate", middlewares.AuthMiddleware(1), controllers.DeleteNationalTrend)
 	// endpoint trend regionali
 	router.GET("/api/trend/regionale", controllers.RegionalTrendHandler("/"))
 	router.GET("/api/trend/regionale/data/:bydata", controllers.RegionalTrendHandler("/data/:"))
@@ -53,11 +53,11 @@ func main() {
 	router.GET("/api/trend/regionale/picco/", controllers.RegionalTrendHandler("/picco"))
 	router.GET("/api/trend/regionale/picco/:byregid", controllers.RegionalTrendHandler("/picco/:"))
 	// endpoint utenti
-	router.GET("/api/utenti", middlewares.AuthMiddleware(), controllers.GetAllUsers)
-	router.GET("/api/utenti/:byusername", middlewares.AuthMiddleware(), controllers.GetUserByUsername)
-	router.POST("/api/utenti/signup", middlewares.AuthMiddleware(), controllers.UserSignup)
+	router.GET("/api/utenti", middlewares.AuthMiddleware(0), controllers.GetAllUsers)
+	router.GET("/api/utenti/:byusername", middlewares.AuthMiddleware(0), controllers.GetUserByUsername)
+	router.POST("/api/utenti/signup", middlewares.AuthMiddleware(0), controllers.UserSignup)
 	router.POST("/api/utenti/login", controllers.UserSignin)
-	router.DELETE("/api/utenti/:byusername", middlewares.AuthMiddleware(), controllers.UserDelete)
+	router.DELETE("/api/utenti/:byusername", middlewares.AuthMiddleware(1), controllers.UserDelete)
 
 	// endpoint 404
 	router.NoRoute(models.HandleNoRoute)
