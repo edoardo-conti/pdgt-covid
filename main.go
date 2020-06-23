@@ -37,7 +37,7 @@ func main() {
 	}))
 
 	// endpoint iniziali
-	router.GET("/api", models.HandleWelcome)
+	router.GET("/", models.HandleWelcome)
 	router.GET("/api/trend", models.HandleAndamento)
 	// endpoint trend nazionali
 	router.GET("/api/trend/nazionale", controllers.NationalTrend)
@@ -56,7 +56,7 @@ func main() {
 	router.GET("/api/utenti", middlewares.AuthMiddleware(0), controllers.GetAllUsers)
 	router.GET("/api/utenti/:byusername", middlewares.AuthMiddleware(0), controllers.GetUserByUsername)
 	router.POST("/api/utenti/signup", middlewares.AuthMiddleware(0), controllers.UserSignup)
-	router.POST("/api/utenti/login", controllers.UserSignin)
+	router.POST("/api/utenti/signin", controllers.UserSignin)
 	router.DELETE("/api/utenti/:byusername", middlewares.AuthMiddleware(1), controllers.UserDelete)
 
 	// endpoint 404

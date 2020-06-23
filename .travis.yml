@@ -1,0 +1,13 @@
+language: go
+go:
+  - pdgt-covid
+deploy:
+  provider: heroku
+  buildpack: https://github.com/kr/heroku-buildpack-go.git
+  api_key:
+    secure: SajH4/FmgLBM7X2COkKsEn1aQjZnrNuIE1674x8nr2sqHIiNfljHeDy789z7aIwJdFGQrrg/V++NkNXWB7sUXBRJvUth8DzJb/GNIFsN5FPrQQgrsUxqwPR9hCkMIbjAd+bqS0YBJdgquDHQ3ExzbGW5tZpDr8XRXXQSU1Oz11LBsM+IZaD1kkfDVUSWFgZJ2ZUF5ZF0vwX0+xByVF+q1Sd9IDdd+9vABZkQKzhPdAijiOV0Wj+JZSLufsBxM1DbOdQkh0qBdWeuvybrLIoFCyjaS22CXY/r17IEjcXEDCgTsCfnif6Z7a4WOA+ISuTAdNJtF/AsALVC72touQmUJWgwzXcWF/83G7ep2bhhc2hTcqewVBrvcfh45w7k28UjEghOdCfBiMRpXvnZtKj8jLcT/9AAKedBAwUJ9ZxQFXz/tC9OCUJFruKgNzmx72bJ/85zL/N/jLSxokD7G1kGGIbXOKv+9xh0AMh48xuzqXiJu3DfB0LogZuzIuspcsqvMA4UVRtdLk5rxtRlIB/ZKjv/hagaNX74NCLLS6Piiz9QymtlIPaHYzNWnbK/F2lxJidi4uHPdtsv5sBGAsONS/+Tu2fKuNncrRYb8GDqhH2Kn5XWD52YbzrYOB3GWDTgSIkqoxqkD41bjKDjwu/uhdmon0EKF7B9XfXQzAgTn+Q=
+  app: pdgt-covid
+  on:
+    repo: edoardo-conti/pdgt-covid
+  skip_cleanup: 'true'
+

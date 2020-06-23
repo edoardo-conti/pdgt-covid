@@ -51,17 +51,7 @@ func CheckTokenValid(r *http.Request) (bool, error) {
 		tokenString = strArr[1]
 	}
 
-	/*
-		// parsing del token
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			// verifica del metodo utilizzato per l'encoding, metodo richiesto: "SigningMethodHMAC"
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("wrong JWT method: %v", token.Header["alg"])
-			}
-			return []byte(os.Getenv("JWT_ACCESS_SECRET")), nil
-		})
-	*/
-
+	// parsing del token
 	claims := jwt.MapClaims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		// verifica del metodo utilizzato per l'encoding, metodo richiesto: "SigningMethodHMAC"
@@ -70,13 +60,6 @@ func CheckTokenValid(r *http.Request) (bool, error) {
 		}
 		return []byte(os.Getenv("JWT_ACCESS_SECRET")), nil
 	})
-
-	// per scorrere i campi claims -->
-	// for key, val := range claims {
-	//	 fmt.Printf("Key: %v, value: %v\n", key, val)
-	// }
-
-	// fmt.Printf("role: %v\n", claims["role"])
 
 	// rilascio dell'esito
 	if err == nil {
@@ -125,25 +108,3 @@ func AuthMiddleware(authorize int) gin.HandlerFunc {
 		}
 	}
 }
-
-//IsAdmin ...
-/*
-func IsAdmin() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		//	user := c.Get("username").(*jwt.Token)
-		//	claims := user.Claims.(jwt.MapClaims)
-		//	role := claims["role"].(string)
-
-
-		claims := jwt.ExtractClaims(c)
-		user, _ := c.Get(identityKey)
-		c.JSON(200, gin.H{
-			"userID":   claims[identityKey],
-			"userName": user.(*User).UserName,
-			"text":     "Hello World.",
-		})
-
-		//c.Next()
-	}
-}
-*/
