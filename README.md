@@ -752,6 +752,84 @@ L'immagine degli avatar utente è ricavata sfruttando l'API del servizio [DiceBe
     "status": 200
 }
 ```
+------------------------------------------
+
+### Continuous Integration e Continuous Deployment (CI/CD) ###
+
+L'integrazione continua (*continuous integration o CI*) è affidata al servizio **Travis CI**. Nel repository è possibile consulatare il file [.travis.yml](https://github.com/edoardo-conti/pdgt-covid/blob/master/.travis.yml) che specifica i parametri fondamentali per poter integrare il repository nella piattaforma. 
+
+Nello stesso file è presente il tag `deploy`, responsabile del deployment continuo (*continuous deployment o CD*) sul provider **Heroku**. Grazie a quest'ultimo è stato possibile creare un app dedicata al progetto e renderlo disponibile online tramite indirizzo web pubblicamente accessibile. L'API Key di Heroku è stata fornita in forma cryptata, ottenuta grazie a `travis-ci cli`, il quale non espone problematiche a livello di sicurezza.
+
+Il Web Service API è pertanto accessibile al seguente indirizzo: https://pdgt-covid.herokuapp.com
+
+------------------------------------------
+
+### Client ed Esempi d'uso ###
+
+Il repository pubblico del client è accessibile a questo indirizzo: https://github.com/edoardo-conti/pdgt-covid-client
+
+L'applicativo è erogato secondo le stesse modalità CI/CD illustrate nella sezione appena sopra, ergo è accessibile al seguente indirizzo: https://pdgt-covid-client.herokuapp.com
+
+Di seguito vengono riportate delle credenziali di testing:
+```
+username: test
+password: test
+```
+
+Raggiunta la homepage della web app si verrà accolti da un messaggio di benvenuto. Nel menù superiore, a sinistra è possibile accedere alla lista di funzionalità del client. Si riportano screenshots del funzionamento dell'applicativo:
+
+###### Visitatore ######
+Visualizzazione trend nazionale e regionale senza permessi di modifica ed eliminazione. La tabella utenti non è accessibile ad un visitatore.
+<div>
+  <img src="https://i.imgur.com/jowG7BB.png" width="30%" />
+  <img src="https://i.imgur.com/VQEb9vN.png" width="30%" /> 
+  <img src="https://i.imgur.com/O1L3AY0.png" width="30%" /> 
+</div>
+<div>
+  <img src="https://i.imgur.com/BZu4SHC.png" width="30%" />
+  <img src="https://i.imgur.com/Z0LpWku.png" width="30%" /> 
+  <img src="https://i.imgur.com/IUbZAxD.png" width="30%" /> 
+</div>
+
+###### Utente ed Admin ######
+Sono state evidenziate le differenze accedendo alla pagine come utente loggato. Sono disponibili icone per l'aggiunta, modifica e cancellazione di trend nazionale. E' inoltre possibile accedere alla tabella utenti in lettura e scrittura.
+<div>
+  <img src="https://i.imgur.com/C6GIYAg.png" width="30%" />
+  <img src="https://i.imgur.com/Idx8kSt.png" width="30%" /> 
+  <img src="https://i.imgur.com/wyesyml.png" width="30%" /> 
+</div>
+
+###### Gestione degli errori ######
+Dimostrazione della gestione degli errori, elaborata in parte lato client ma in maggior parte lato server. I messaggi d'errore sono direttamente quelli riportati dalle richieste HTTP quando possibile.
+<div>
+  <img src="https://i.imgur.com/MAYgwhi.png" width="30%" /> 
+  <img src="https://i.imgur.com/z5tMRvB.png" width="30%" /> 
+  <img src="https://i.imgur.com/2EC6Uc8.png" width="30%" /> 
+</div>
+
+###### Autorizzazione ######
+Come riportato nella tabella dei privilegi più in su, vi sono delle differenze tra ciò che un utente può richiedere rispetto ad un admin. 
+<div>
+  <img src="https://i.imgur.com/7gh5zfH.png" width="30%" /> 
+  <img src="https://i.imgur.com/CcdIL7r.png" width="30%" /> 
+  <img src="https://i.imgur.com/CEvChwb.png" width="30%" /> 
+</div>
+
+###### Notifica modifica avvenuta con successo ######
+Gestione dei messaggi riportati dalle risposte delle richieste HTTP all'avvenuta aggiunta, modifica o cancellazione di dati.
+<div>
+  <img src="https://i.imgur.com/eSvVZ6n.png" width="30%" /> 
+  <img src="https://i.imgur.com/X9ZrHVm.png" width="30%" /> 
+  <img src="https://i.imgur.com/2RiBwEQ.png" width="30%" /> 
+</div>
+
+###### Login e Menù ######
+Screenshots della pagina di login e le differenze nel menù tra un utente ed un admin.
+<div>
+  <img src="https://i.imgur.com/36673wC.png" width="30%" /> 
+  <img src="https://i.imgur.com/vcBeQBz.png" width="30%" /> 
+  <img src="https://i.imgur.com/OUqnQUZ.png" width="30%" /> 
+</div>
 
 ------------------------------------------
 
