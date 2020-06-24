@@ -55,7 +55,7 @@ func main() {
 	// endpoint utenti
 	router.GET("/api/utenti", middlewares.AuthMiddleware(0), controllers.GetAllUsers)
 	router.GET("/api/utenti/:byusername", middlewares.AuthMiddleware(0), controllers.GetUserByUsername)
-	router.POST("/api/utenti/signup", middlewares.AuthMiddleware(0), controllers.UserSignup)
+	router.POST("/api/utenti/signup", controllers.UserSignup)
 	router.POST("/api/utenti/signin", controllers.UserSignin)
 	router.DELETE("/api/utenti/:byusername", middlewares.AuthMiddleware(1), controllers.UserDelete)
 
