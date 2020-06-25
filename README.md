@@ -13,7 +13,7 @@
 
 ### Introduzione ###
 
-Progetto finalizzato alla realizzazione di un Web Service RESTfull con lo scopo di erogare API per garantire fruizione e manipolazione di dati relativi all'andamento del Covid-19 in Italia. Il sistema prevede due strati di sicurezza: autenticazione ed autorizzazione. 
+Progetto finalizzato alla realizzazione di un Web Service RESTful con lo scopo di erogare API per garantire fruizione e manipolazione di dati relativi all'andamento del Covid-19 in Italia. Il sistema prevede due strati di sicurezza: autenticazione ed autorizzazione. 
 
 Gli obiettivi, nonchè funzionalità principali del progetto sono di seguito riportati: 
 - **Trend Nazionale**
