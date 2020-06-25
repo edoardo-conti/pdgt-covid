@@ -13,9 +13,9 @@
 
 ### Introduzione ###
 
-Progetto finalizzato alla realizzazione di un Web Server RESTfull con lo scopo di erogare API per garantire fruizione e manipolazione di dati relativi all'andamento del Covid-19 in Italia. Il sistema prevede due strati di sicurezza: autenticazione ed autorizzazione. 
+Progetto finalizzato alla realizzazione di un Web Service RESTfull con lo scopo di erogare API per garantire fruizione e manipolazione di dati relativi all'andamento del Covid-19 in Italia. Il sistema prevede due strati di sicurezza: autenticazione ed autorizzazione. 
 
-Gli obiettivi principali del progetto sono di seguito riportati: 
+Gli obiettivi, nonchè funzionalità principali del progetto sono di seguito riportati: 
 - **Trend Nazionale**
   - Visualizzazione trend nazionale
   - Visualizzazione picco di nuovi positivi a livello nazionale 
@@ -116,19 +116,25 @@ type NationalTrend struct {
 	NoteEN                   sql.NullString `json:"note_en"`
 }
 ```
-Onde evitare ridondanza e mantenere il Readme il più pulito e coinciso possibile, gli schemi e strutture delle tabelle `regioni` ed `utenti` non verranno riportate.
+Onde evitare ridondanza e mantenere un Readme a scopo riassuntivo, gli schemi e strutture delle tabelle `regioni` ed `utenti` non verranno riportate.
+
+L'importazione dei dati è avvenuta tramite comando `COPY` via `psql` il quale copia dati tra files e tabelle Postegre SQL. Nello specifico, inizialmente si è scaricato il file .csv contenente i dati interessati come specificato nella sezione più in basso **Dati e Servizi Esterni**. Successivamente è stato creato lo schema tabella su Postgres seguendo il formato delle colonne e dei dati per poi andare ad effettuare l'importazione tramite un comando compilato simile al seguente:
+```sh
+$ PGPASSWORD=<db_password> psql -h <host> -U <username> <database> -c "\copy nazione (data,stato,ricoverati_con_sintomi,terapia_intensiva,totale_ospedalizzati,isolamento_domiciliare,totale_positivi,variazione_totale_positivi,nuovi_positivi,dimessi_guariti,deceduti,totale_casi,tamponi,casi_testati,note_it,note_en) FROM '<path_to_dpc-covid19-ita-andamento-nazionale.csv>' CSV HEADER DELIMITER ','"
+```
 
 ###### Sistema di Autenticazione ed Autorizzazione ######
-La sicurezza sulla modifica dei dati archiviati è gestita su due layer: autenticazione ed autorizzazione. Il sistema è stato pensato ponendo dei limiti di lettura e scrittura su utenti non autenticati. La registrazione di un nuovo utente è effettuabile solamente da un utente già registrato nel database per evitare spiacevoli inconvenienti. Per quanto riguarda le autorizzazioni, un utente registrato gode di privilegi di lettura superiori rispetto ad un visitatore e vanta la possibilità di effettuare richieste http *POST*. Un Admin possiede tutti i privilegi di lettura e modifica, per tanto oltre a quanto possibile ad un Utente può effettuare richieste http *PATCH* e *DELETE*. Di seguito è riportata una tabella che riassume i permessi delle API:
+La sicurezza sulla modifica dei dati archiviati è gestita su due layer: autenticazione ed autorizzazione. Il sistema è stato pensato ponendo dei limiti di lettura e scrittura su utenti non autenticati. Per quanto riguarda le autorizzazioni, un utente registrato gode di privilegi di lettura superiori rispetto ad un visitatore e vanta la possibilità di effettuare richieste HTTP *POST* all'infuori del signup e signin. Un Admin possiede tutti i privilegi di lettura e scrittura, per tanto oltre a quanto possibile ad un Utente può effettuare richieste HTTP *PATCH* e *DELETE*. Di seguito è riportata una tabella che riassume i permessi delle API:
 
 Visitatore | Utente | Admin
 ------------ | ------------- | -------------
 `GET /api/trend/*` | `GET /api/trend/*` | `GET /api/trend/*`
 \- | `GET /api/utenti/*` | `GET /api/utenti/*`
-`POST /api/utenti/signin` | `POST /api/*` | `POST /api/*`
+`POST /api/utenti/signin`<br>`POST /api/utenti/signup` | `POST /api/*` | `POST /api/*`
 \- | - | `PATCH /api/*`
 \- | - | `DELETE /api/*`
 
+Nel form di registrazione è possibile specificare se l'utente che si sta tentando di creare godrà di privilegi lv.Admin semplicemente selezionando un checkbox.
 Il login di un utente è verificato tramite **JSON Web Token (JWT)**, uno standard open che definisce uno schema JSON per lo scambio di informazioni tra vari servizi. Il token generato verrà firmato con una chiave segreta impostata come variabile d'ambiente in Heroku (`JWT_ACCESS_SECRET`) tramite l'algoritmo HMAC. Durante la fase di login le credenziali vengono cryptate secondo l'algoritmo di hashing **bcrypt** evitando di esporre password in chiaro. Ergo nel database viene salvato unicamente l'hash della password. Lato server sfruttando il metodo `CompareHashAndPassword(...)` della libreria `bcrypt` si comparerà la password in chiaro proposta dall'utente e l'hash presente nel database. 
 
 ###### Client ######
@@ -147,25 +153,21 @@ $ npm install material-table @material-ui/core --save
 ```
 Le comunicazioni con protocollo HTTP lato client sono effettuate sfruttando `axios`, un client HTTP promise-api-based per nodejs.
 Maggiori informazioni circa il funzionamento della web app sono disponibili nella sezione dedicata con tanto di screenshots del funzionamento. 
-
+```sh
+$ npm install axios
+```
+```go
+import axios from "axios";
+```
 ------------------------------------------
 
 ### Dati e Servizi Esterni ###
 
-Il recupero dei dati relativi all'andamento del Covid-19 in Italia è stato ricavato dal *Dipartimento della Protezione Civile (DPC)*  sotto licenza *Creative Commons Attribution 4.0 International* per mezzo di file .csv ospitati nel repository pubblico GitHub [pcm-dpc/COVID-19](https://github.com/pcm-dpc/COVID-19). Per correttezza si riporta un estratto di quando specificato nella [licenza](https://github.com/pcm-dpc/COVID-19/blob/master/LICENSE): 
->       1. Subject to the terms and conditions of this Public License,
->          the Licensor hereby grants You a worldwide, royalty-free,
->          non-sublicensable, non-exclusive, irrevocable license to
->          exercise the Licensed Rights in the Licensed Material to:
->
->            a. reproduce and Share the Licensed Material, in whole or
->               in part; and
->
->            b. produce, reproduce, and Share Adapted Material.
+Il recupero dei dati relativi all'andamento del Covid-19 in Italia è stato ricavato dal *Dipartimento della Protezione Civile (DPC)*  sotto licenza *Creative Commons Attribution 4.0 International* per mezzo di file .csv ospitati nel repository pubblico GitHub [pcm-dpc/COVID-19](https://github.com/pcm-dpc/COVID-19). [Licenza servizio](https://github.com/pcm-dpc/COVID-19/blob/master/LICENSE).
 
 La realizzazione della mappa interattiva accessibile dalla web app, che illustra la diffusione del Covid-19 in italia mediante cerchi di dimensione in scala direttamente proporzionale al totale dei casi della regione, è possibile grazie alle API di Google Maps. [Termini di servizio](https://cloud.google.com/maps-platform/terms?_ga=2.90427935.407167450.1593004949-1198461100.1591999667).
 
-L'immagine degli avatar utente è ricavata sfruttando l'API del servizio [DiceBear Avatars](https://avatars.dicebear.com). Il servizio permette di effettuare richieste HTTP richiedendo diverse tipologie ed immagini di avatar in base alle preferenze imposte mediante il path dell'API. [Termini di servizio](https://github.com/DiceBear/avatars/blob/v4/LICENSE).
+L'immagine degli avatar utente è ricavata sfruttando l'API del servizio [DiceBear Avatars](https://avatars.dicebear.com). Il servizio permette di effettuare richieste HTTP richiedendo diverse tipologie ed immagini di avatar in base alle preferenze imposte mediante il path dell'API. [Licenza servizio](https://github.com/DiceBear/avatars/blob/v4/LICENSE).
 
 ------------------------------------------
 
@@ -657,6 +659,9 @@ L'immagine degli avatar utente è ricavata sfruttando l'API del servizio [DiceBe
 ```json
 // richiesta
 // Authorization <token>
+```
+```json
+// risposta
 {
     "count": 4,
     "data": [
@@ -685,7 +690,9 @@ L'immagine degli avatar utente è ricavata sfruttando l'API del servizio [DiceBe
 // richiesta
 // https://pdgt-covid.herokuapp.com/api/utenti/test
 // Authorization <token>
-// 
+```
+```json 
+// risposta
 {
     "data": {
         "username": "test",
@@ -697,16 +704,15 @@ L'immagine degli avatar utente è ricavata sfruttando l'API del servizio [DiceBe
 }
 ```
 
-* **Registrazione utente nel database** `(Richiesta Autenticazione)`
+* **Registrazione utente nel database**
 
 `POST https://pdgt-covid.herokuapp.com/api/utenti/signup`
 ```json
 // richiesta
-// Authorization <token>
 {
-    "username":"mario",
-    "password":"segreto",
-    "is_admin":false
+    "username": "mario",
+    "password": "segreto",
+    "is_admin": false
 }
 ```
 ```json
@@ -724,8 +730,8 @@ L'immagine degli avatar utente è ricavata sfruttando l'API del servizio [DiceBe
 ```json
 // richiesta
 {
-    "username":"test",
-    "password":"test"
+    "username": "test",
+    "password": "test"
 }
 ```
 ```json
@@ -759,6 +765,16 @@ L'immagine degli avatar utente è ricavata sfruttando l'API del servizio [DiceBe
 L'integrazione continua (*continuous integration o CI*) è affidata al servizio **Travis CI**. Nel repository è possibile consulatare il file [.travis.yml](https://github.com/edoardo-conti/pdgt-covid/blob/master/.travis.yml) che specifica i parametri fondamentali per poter integrare il repository nella piattaforma. 
 
 Nello stesso file è presente il tag `deploy`, responsabile del deployment continuo (*continuous deployment o CD*) sul provider **Heroku**. Grazie a quest'ultimo è stato possibile creare un app dedicata al progetto e renderlo disponibile online tramite indirizzo web pubblicamente accessibile. L'API Key di Heroku è stata fornita in forma cryptata, ottenuta grazie a `travis-ci cli`, il quale non espone problematiche a livello di sicurezza.
+
+Riassumendo, durante la fase di sviluppo, quando si avrà raggiunto un momento utile per effettuare il commit delle modifiche dei file sorgente, questo è l'ordine step-by-step richiesto:
+```sh
+$ go mod tidy
+$ go mod vendor
+$ git add -A .
+$ git commit -m "breve commento modifiche apportate"
+$ git push
+```
+Ultimato il push nel repository Git, verrà triggerata la build in travis-ci dell'ultimo commit il quale imposterà l'ambiente di compilazione (comprensivo di ```go env```), effettuerà una pull request del branch master ed avvierà la compilazione e deployment automatico su Heroku nell'app indicata. Ergo, dopo ogni ```git push``` l'implementazione di un sistema CI/CD mi permetterà di poter accedere all'API dopo pochi istanti all'indirizzo dell'applicativo Heroku di seguito indicato. 
 
 Il Web Service API è pertanto accessibile al seguente indirizzo: https://pdgt-covid.herokuapp.com
 
@@ -796,7 +812,7 @@ Sono state evidenziate le differenze accedendo alla pagine come utente loggato. 
 <div>
   <img src="https://i.imgur.com/C6GIYAg.png" width="30%" />
   <img src="https://i.imgur.com/Idx8kSt.png" width="30%" /> 
-  <img src="https://i.imgur.com/wyesyml.png" width="30%" /> 
+  <img src="https://i.imgur.com/NYhHNNr.png" width="30%" /> 
 </div>
 
 ###### Gestione degli errori ######
@@ -811,8 +827,8 @@ Dimostrazione della gestione degli errori, elaborata in parte lato client ma in 
 Come riportato nella tabella dei privilegi più in su, vi sono delle differenze tra ciò che un utente può richiedere rispetto ad un admin. 
 <div>
   <img src="https://i.imgur.com/7gh5zfH.png" width="30%" /> 
-  <img src="https://i.imgur.com/CcdIL7r.png" width="30%" /> 
-  <img src="https://i.imgur.com/CEvChwb.png" width="30%" /> 
+  <img src="https://i.imgur.com/x9jxbIP.png" width="30%" /> 
+  <img src="https://i.imgur.com/3YvZTc0.png" width="30%" /> 
 </div>
 
 ###### Notifica modifica avvenuta con successo ######
@@ -820,15 +836,15 @@ Gestione dei messaggi riportati dalle risposte delle richieste HTTP all'avvenuta
 <div>
   <img src="https://i.imgur.com/eSvVZ6n.png" width="30%" /> 
   <img src="https://i.imgur.com/X9ZrHVm.png" width="30%" /> 
-  <img src="https://i.imgur.com/2RiBwEQ.png" width="30%" /> 
+  <img src="https://i.imgur.com/YmViqST.png" width="30%" /> 
 </div>
 
 ###### Login e Menù ######
-Screenshots della pagina di login e le differenze nel menù tra un utente ed un admin.
+Screenshots della pagina di signup, signin e le differenze nel menù tra utente ed admin.
 <div>
-  <img src="https://i.imgur.com/36673wC.png" width="30%" /> 
-  <img src="https://i.imgur.com/vcBeQBz.png" width="30%" /> 
-  <img src="https://i.imgur.com/OUqnQUZ.png" width="30%" /> 
+  <img src="https://i.imgur.com/M8W7MY1.png" width="30%" /> 
+  <img src="https://i.imgur.com/i5EAFTb.png" width="30%" /> 
+  <img src="https://i.imgur.com/yxr7A7z.png" width="30%" /> 
 </div>
 
 ------------------------------------------
