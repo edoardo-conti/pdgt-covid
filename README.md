@@ -134,7 +134,8 @@ Visitatore | Utente | Admin
 \- | - | `PATCH /api/*`
 \- | - | `DELETE /api/*`
 
-Nel form di registrazione è possibile specificare se l'utente che si sta tentando di creare godrà di privilegi lv.Admin semplicemente selezionando un checkbox.
+Nel form di registrazione è possibile specificare se l'utente che si sta tentando di creare godrà di privilegi lv. Admin semplicemente selezionando un checkbox. Si ricorda che a fine file è possibile consultare degli screenshots dell'applicativo.
+
 Il login di un utente è verificato tramite **JSON Web Token (JWT)**, uno standard open che definisce uno schema JSON per lo scambio di informazioni tra vari servizi. Il token generato verrà firmato con una chiave segreta impostata come variabile d'ambiente in Heroku (`JWT_ACCESS_SECRET`) tramite l'algoritmo HMAC. Durante la fase di login le credenziali vengono cryptate secondo l'algoritmo di hashing **bcrypt** evitando di esporre password in chiaro. Ergo nel database viene salvato unicamente l'hash della password. Lato server sfruttando il metodo `CompareHashAndPassword(...)` della libreria `bcrypt` si comparerà la password in chiaro proposta dall'utente e l'hash presente nel database. 
 
 ###### Client ######
@@ -667,13 +668,11 @@ L'immagine degli avatar utente è ricavata sfruttando l'API del servizio [DiceBe
     "data": [
         {
             "username": "edoardo",
-            "password": "$2a$10$ZLeA29AWNfETxs1.ymJlLeKfeTGQ54dOUjzWnSuT4jMa1VdmeXF3.",
             "is_admin": true,
             "avatar_url": "https://avatars.dicebear.com/api/initials/e.svg"
         },
         {
             "username": "professore",
-            "password": "$2a$10$l1zAnEcs6xadNhhaUkcrP.mJ1mK7VmrXqtUKVyncsnd.drkoPQPjC",
             "is_admin": true,
             "avatar_url": "https://avatars.dicebear.com/api/initials/p.svg"
         },
@@ -696,7 +695,6 @@ L'immagine degli avatar utente è ricavata sfruttando l'API del servizio [DiceBe
 {
     "data": {
         "username": "test",
-        "password": "$2a$10$mtO95KBoLCAunUy5TzgM9uGEwKSyWHNas6JjR63ofzkEqgpIif1J6",
         "is_admin": false,
         "avatar_url": "https://avatars.dicebear.com/api/initials/t.svg"
     },
@@ -762,7 +760,7 @@ L'immagine degli avatar utente è ricavata sfruttando l'API del servizio [DiceBe
 
 ### Continuous Integration e Continuous Deployment (CI/CD) ###
 
-L'integrazione continua (*continuous integration o CI*) è affidata al servizio **Travis CI**. Nel repository è possibile consulatare il file [.travis.yml](https://github.com/edoardo-conti/pdgt-covid/blob/master/.travis.yml) che specifica i parametri fondamentali per poter integrare il repository nella piattaforma. 
+L'integrazione continua (*continuous integration o CI*) è affidata al servizio **Travis CI**. Nel repository è possibile consultare il file [.travis.yml](https://github.com/edoardo-conti/pdgt-covid/blob/master/.travis.yml) che specifica i parametri fondamentali per poter integrare il repository nella piattaforma. 
 
 Nello stesso file è presente il tag `deploy`, responsabile del deployment continuo (*continuous deployment o CD*) sul provider **Heroku**. Grazie a quest'ultimo è stato possibile creare un app dedicata al progetto e renderlo disponibile online tramite indirizzo web pubblicamente accessibile. L'API Key di Heroku è stata fornita in forma cryptata, ottenuta grazie a `travis-ci cli`, il quale non espone problematiche a livello di sicurezza.
 

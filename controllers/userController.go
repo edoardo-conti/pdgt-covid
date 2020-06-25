@@ -102,8 +102,9 @@ func UserSignup(c *gin.Context) {
 		newUserInput.Username = strings.TrimSpace(newUserInput.Username)
 		newUserInput.Password = strings.TrimSpace(newUserInput.Password)
 
-		// verifica che i campi risultanti non siano vuoti
-		if newUserInput.Username != "" && newUserInput.Password != "" {
+		// verifica che i campi risultanti non siano vuoti e lunghi almeno 4 caratteri
+		if len(newUserInput.Username) >= 4 &&
+			len(newUserInput.Password) >= 4 {
 			// generazione hash bcrypt della password fornita
 			hashedpassword, err := bcrypt.GenerateFromPassword([]byte(newUserInput.Password), bcrypt.DefaultCost)
 			if err != nil {
@@ -141,7 +142,7 @@ func UserSignup(c *gin.Context) {
 			// uno o entrambi i campi sono vuoti
 			c.JSON(http.StatusNotAcceptable, gin.H{
 				"status":  406,
-				"message": "Errore: richiesti entrambi i campi.",
+				"message": "Errore: richiesti entrambi i campi con almeno 4 caratteri.",
 			})
 		}
 	} else {
