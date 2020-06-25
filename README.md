@@ -174,6 +174,10 @@ L'immagine degli avatar utente è ricavata sfruttando l'API del servizio [DiceBe
 
 ### Documentazione API ###
 
+E' possibile accedere alla documentazione dell'API su SwaggerHub a questo indirizzo: https://app.swaggerhub.com/apis/edoardo-conti/pdgt-covid/1.0.0#/
+
+Per maggiori risultati in merito si inviata a continuare la lettura qui sotto.
+
 ###### Trend Nazionale ######
 
 * **Visualizzare tutti i trend nazionali**
