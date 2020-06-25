@@ -16,33 +16,31 @@ import (
 // GetAllUsers ottenere l'intera lista di utenti registrati nel sistema
 func GetAllUsers(c *gin.Context) {
 	// query SQL
-	rows, err := models.DB.Query("SELECT * FROM users")
+	rows, err := models.DB.Query("SELECT username, isadmin FROM users")
 	if err != nil {
 		log.Fatalf("Query: %v", err)
 	}
 	defer rows.Close()
 
-	/*
-	 * gestione degli avatar tramite servizio esterno che genera
-	 * l'immagine a partire dall'iniziale dell'username
-	 */
-	avatarURLBase := "https://avatars.dicebear.com/api/initials/"
-	avatarURL := ""
-
+	// conteggio degli utenti registrati
 	counter := 0
 
 	// array di strutture utenti per raccogliere i risultati della query
 	var users []models.User
 	for rows.Next() {
 		var u models.User
-		err = rows.Scan(&u.Username, &u.Password, &u.IsAdmin)
+		err = rows.Scan(&u.Username, &u.IsAdmin)
 		if err != nil {
 			log.Fatalf("Scan: %v", err)
 		}
-		// generazione URL avatar
-		avatarURL = avatarURLBase + string([]rune(u.Username)[0]) + ".svg"
 
-		users = append(users, models.User{Username: u.Username, Password: u.Password, IsAdmin: u.IsAdmin, Avatar: avatarURL})
+		/*
+		 * gestione degli avatar tramite api servizio esterno che
+		 * genera l'immagine a partire dall'iniziale dell'username
+		 */
+		avatarURL := "https://avatars.dicebear.com/api/initials/" + string([]rune(u.Username)[0]) + ".svg"
+
+		users = append(users, models.User{Username: u.Username, IsAdmin: u.IsAdmin, Avatar: avatarURL})
 
 		counter++
 	}
@@ -66,8 +64,8 @@ func GetUserByUsername(c *gin.Context) {
 		var uc models.User
 
 		// query SQL
-		row := models.DB.QueryRow("SELECT * FROM users WHERE username=$1", usrname)
-		switch err := row.Scan(&u.Username, &u.Password, &u.IsAdmin); err {
+		row := models.DB.QueryRow("SELECT username, isadmin FROM users WHERE username=$1", usrname)
+		switch err := row.Scan(&u.Username, &u.IsAdmin); err {
 		case sql.ErrNoRows:
 			// nessun record risultante
 			c.JSON(http.StatusNotFound, gin.H{
@@ -77,8 +75,9 @@ func GetUserByUsername(c *gin.Context) {
 		case nil:
 			// generazione URL avatar
 			avatarURL := "https://avatars.dicebear.com/api/initials/" + string([]rune(u.Username)[0]) + ".svg"
+
 			// generazione struttura utente da restituire
-			uc = models.User{Username: u.Username, Password: u.Password, IsAdmin: u.IsAdmin, Avatar: avatarURL}
+			uc = models.User{Username: u.Username, IsAdmin: u.IsAdmin, Avatar: avatarURL}
 
 			c.JSON(http.StatusOK, gin.H{
 				"status": 200,
@@ -135,7 +134,7 @@ func UserSignup(c *gin.Context) {
 				// utente già registrato nel database con l'username fornito
 				c.JSON(http.StatusBadRequest, gin.H{
 					"status":  400,
-					"message": "Errore: utente " + u.Username + " già registrato nel database.",
+					"message": "Errore: utente " + newUserInput.Username + " già registrato nel database.",
 				})
 			}
 		} else {
