@@ -15,7 +15,7 @@
 
 Progetto finalizzato alla realizzazione di un Web Service RESTful con lo scopo di erogare API per garantire fruizione e manipolazione di dati relativi all'andamento del Covid-19 in Italia. Il sistema prevede due strati di sicurezza: autenticazione ed autorizzazione. 
 
-Gli obiettivi, nonchè funzionalità principali del progetto sono di seguito riportati: 
+Gli obiettivi, nonchè funzionalità principali del progetto, sono di seguito riportati: 
 - **Trend Nazionale**
   - Visualizzazione trend nazionale
   - Visualizzazione picco di nuovi positivi a livello nazionale 
@@ -36,9 +36,9 @@ Gli obiettivi, nonchè funzionalità principali del progetto sono di seguito rip
 
 ### Architettura e Scelte Implementative ###
 
-Il progetto è stato sviluppato seguendo un approccio client-server in quanto si è scelto di sviluppare un applicativo dimostrativo per la fruizione delle API. Il software è inoltre diviso in blocchi dalle funzionalità ben distinte rispettando il pattern architetturale **Model-View-Controller** (MVC). Da specificare che in questo caso la parte grafica è affidata al client, per tanto il server implementerà le parti di Modellazione delle strutture dati e Controller per la gestione delle funzionalità. 
+Il progetto è stato sviluppato seguendo un approccio client-server in quanto si è scelto di sviluppare un applicativo dimostrativo (client) per la fruizione delle API. Il software è inoltre diviso in blocchi dalle funzionalità ben distinte rispettando il pattern architetturale **Model-View-Controller (MVC)**. Da specificare che in questo caso la parte grafica è affidata al client, per tanto il server implementerà di conseguenza le parti di Modellazione delle strutture dati e Controller per la gestione delle funzionalità. 
 
-Per quanto concerne il lato server, si è sposata la scelta del linguaggio di programmazione open source [Go](https://golang.org). Le motivazioni di tale scelta ricadono nell'efficienza di scrittura di codice che permettono la scrittura di software semplici ed affidabili, presenza di framework moderni per l'approccio alle comunicazioni HTTP ma sopratutto: cogliere l'occasione per imparare questo nuovo linguaggio di programmazione che da tempo mi incuriosiva. 
+Quindi per quanto concerne il lato server, si è sposata la scelta del linguaggio di programmazione open source [Go](https://golang.org). Le motivazioni di tale scelta ricadono nell'efficienza di scrittura di codice che permette la realizzazione di software semplici ma affidabili, presenza di framework moderni per l'approccio alle comunicazioni HTTP e sopratutto sfruttare l'occasione per imparare questo linguaggio di programmazione che da tempo mi incuriosiva. 
 La gestione delle richieste HTTP è stata affidata a [Gin Web Framework](https://github.com/gin-gonic/gin) il quale vanta performance *40x* superiori rispetto a *HttpRouter*, un multiplexer alternativo sempre scritto in Go. Per installare il package Gin ed impostarlo nel workspace è sufficiente: 
 1. Utilizzare il seguente comando per installare Gin (necessario Go v1.11+).
     ```sh
@@ -50,13 +50,13 @@ La gestione delle richieste HTTP è stata affidata a [Gin Web Framework](https:/
     ```
 
 ###### Database ######
-La scelta di come mantenere e manipolare i dati interessati, dopo diverse valutazioni, è ricaduta su Heroku Postgres: uno dei DBMS più popolari al mondo basato su SQL. Successivamente si discuterà della scelta d'utilizzo di Heroku per effettuare il deployment dell'applicativo, al momento è sufficiente essere a conoscenza della presenza di tale servizio. Per aggiungere l'addon Postgresql con piano hobby-dev gratuito entro soglie definite nei termini dei servizi alla propria App occorre inviare il comando sottostante (richiede Heroku CLI):
+La scelta di come mantenere e manipolare i dati interessati, dopo diverse valutazioni, è ricaduta su Heroku Postgres: uno dei DBMS più popolari al mondo basato su SQL. Successivamente si discuterà della scelta d'utilizzo di Heroku per effettuare il deployment dell'applicativo, al momento è sufficiente essere a conoscenza della presenza di tale servizio. Per aggiungere l'addon PostgreSQL con piano hobby-dev-free alla propria App è sufficiente inviare il comando sottostante (richiede `Heroku CLI`):
 ```sh
 $ heroku addons:create heroku-postgresql:hobby-dev
 Creating heroku-postgresql:hobby-dev on ⬢ pdgt-covid... free
 Created postgresql-concentric-70860 as DATABASE_URL
 ```
-Così facendo si avrà a disposizione la variabile d'ambiente Heroku `DATABASE_URL` che verrà sfruttata per stabilire una connessione con il database per visualizzazione e manipolare i dati relativi all'andamento del Covid-19 in Italia. Di seguito è riportato il comando per collegarsi alla console psql dell'addon Heroku (previo accesso tramite `$ heroku login`) e la lista di tabelle presenti nel database.
+Così facendo si andrà a creare anche la variabile d'ambiente Heroku `DATABASE_URL`, che verrà impiegata per stabilire una connessione con il database per visualizzare e manipolare i dati relativi all'andamento del Covid-19 in Italia. Di seguito è riportato il comando per collegarsi alla console psql dell'addon Heroku (previo accesso tramite `$ heroku login`) e la lista di tabelle presenti nel database.
 ```sh
 $ heroku pg:psql --app pdgt-covid
 --> Connecting to postgresql-concentric-70860
@@ -73,7 +73,7 @@ pdgt-covid::DATABASE=> \dt
  public | utenti  | table | smmnpqlyusgxdh
 (3 rows)
 ```
-La tabella nazione è dedicata allo storage dei trend nazionali del Covid-19. In seguito si riporta lo schema della tabella SQL e più sotto l'analoga struttura dati Go `NationalTrend` per interfacciarsi con il DB. Da notare la consistenza del nome dei campi per evitare misspelling durante la stesura del codice e migliorare la leggibilità stessa.
+La tabella nazione è dedicata allo storage dei trend nazionali del Covid-19. In seguito si riporta lo schema della tabella SQL e più sotto l'analoga struttura dati in golang per interfacciarsi con il DB, `NationalTrend`. Da notare la consistenza del nome dei campi per ridurre errori di battitura durante la stesura del codice e migliorare la leggibilità dello stesso.
 ```sh
 pdgt-covid::DATABASE=> \d+ nazione
                  Table "public.nazione"                           
@@ -116,15 +116,15 @@ type NationalTrend struct {
 	NoteEN                   sql.NullString `json:"note_en"`
 }
 ```
-Onde evitare ridondanza e mantenere un Readme a scopo riassuntivo, gli schemi e strutture delle tabelle `regioni` ed `utenti` non verranno riportate.
+Onde evitare ridondanza e mantenere il Readme a scopo riassuntivo, gli schemi e strutture delle tabelle `regioni` ed `utenti` non verranno riportate in questa sede ma restano ovviamente consultabili navigando nel codice del respository.
 
-L'importazione dei dati è avvenuta tramite comando `COPY` via `psql` il quale copia dati tra files e tabelle Postegre SQL. Nello specifico, inizialmente si è scaricato il file .csv contenente i dati interessati come specificato nella sezione più in basso **Dati e Servizi Esterni**. Successivamente è stato creato lo schema tabella su Postgres seguendo il formato delle colonne e dei dati per poi andare ad effettuare l'importazione tramite un comando compilato simile al seguente:
+L'importazione dei dati è avvenuta tramite comando `COPY` via `psql` il quale, come suggerisce il nome, copia dati tra file e tabelle PostegreSQL. Nello specifico, inizialmente si è scaricato il file .csv contenente i dati interessati come specificato nella sezione più in basso **Dati e Servizi Esterni**. Successivamente è stato creato lo schema della tabella su Postgres seguendo il formato delle colonne e dei dati per poi andare ad effettuare l'importazione tramite un comando compilato simile al seguente:
 ```sh
 $ PGPASSWORD=<db_password> psql -h <host> -U <username> <database> -c "\copy nazione (data,stato,ricoverati_con_sintomi,terapia_intensiva,totale_ospedalizzati,isolamento_domiciliare,totale_positivi,variazione_totale_positivi,nuovi_positivi,dimessi_guariti,deceduti,totale_casi,tamponi,casi_testati,note_it,note_en) FROM '<path_to_dpc-covid19-ita-andamento-nazionale.csv>' CSV HEADER DELIMITER ','"
 ```
 
 ###### Sistema di Autenticazione ed Autorizzazione ######
-La sicurezza sulla modifica dei dati archiviati è gestita su due layer: autenticazione ed autorizzazione. Il sistema è stato pensato ponendo dei limiti di lettura e scrittura su utenti non autenticati. Per quanto riguarda le autorizzazioni, un utente registrato gode di privilegi di lettura superiori rispetto ad un visitatore e vanta la possibilità di effettuare richieste HTTP *POST* all'infuori del signup e signin. Un Admin possiede tutti i privilegi di lettura e scrittura, per tanto oltre a quanto possibile ad un Utente può effettuare richieste HTTP *PATCH* e *DELETE*. Di seguito è riportata una tabella che riassume i permessi delle API:
+La sicurezza sulla modifica dei dati archiviati è gestita su due layer: autenticazione ed autorizzazione. Il sistema è stato pensato ponendo dei limiti di lettura e scrittura su utenti non autenticati. Per quanto riguarda quindi l'autenticazione: un utente registrato gode di privilegi di lettura superiori rispetto ad un visitatore e vanta la possibilità di effettuare richieste *HTTP POST* (all'infuori del signup e signin). L'autorizzazione si riferisce al role dell'utente, se Admin, possiede tutti i privilegi di lettura e scrittura. Per tanto oltre a quanto possibile ad un Utente, un Admin può effettuare richieste *HTTP PATCH* e *DELETE*. Di seguito è riportata una tabella che riassume i permessi delle API:
 
 Visitatore | Utente | Admin
 ------------ | ------------- | -------------
@@ -134,53 +134,54 @@ Visitatore | Utente | Admin
 \- | - | `PATCH /api/*`
 \- | - | `DELETE /api/*`
 
-Nel form di registrazione è possibile specificare se l'utente che si sta tentando di creare godrà di privilegi lv. Admin semplicemente selezionando un checkbox. Si ricorda che a fine file è possibile consultare degli screenshots dell'applicativo.
+Durante il signup, nel form di registrazione, è possibile specificare se l'utente che si sta tentando di creare godrà di privilegi di livello Admin semplicemente selezionando il checkbox relativo. Si ricorda che a fine file è possibile consultare degli screenshots dell'applicativo, compresa la schermata in questione.
 
-Il login di un utente è verificato tramite **JSON Web Token (JWT)**, uno standard open che definisce uno schema JSON per lo scambio di informazioni tra vari servizi. Il token generato verrà firmato con una chiave segreta impostata come variabile d'ambiente in Heroku (`JWT_ACCESS_SECRET`) tramite l'algoritmo HMAC. Durante la fase di login le credenziali vengono cryptate secondo l'algoritmo di hashing **bcrypt** evitando di esporre password in chiaro. Ergo nel database viene salvato unicamente l'hash della password. Lato server sfruttando il metodo `CompareHashAndPassword(...)` della libreria `bcrypt` si comparerà la password in chiaro proposta dall'utente e l'hash presente nel database. 
+Il login di un utente è verificato tramite **JSON Web Token (JWT)**, uno standard open che definisce uno schema JSON per lo scambio di informazioni tra vari servizi. Il token generato verrà firmato con una chiave segreta impostata come variabile d'ambiente in Heroku (`JWT_ACCESS_SECRET`) tramite l'algoritmo HMAC. Durante la fase di login le credenziali vengono cryptate secondo l'algoritmo di hashing **bcrypt**. Ergo nel database viene salvato unicamente l'hash della password evitando di esporre password in chiaro in caso di falle di sicurezza. Lato server, sfruttando il metodo `CompareHashAndPassword(...)` della libreria `bcrypt`, si comparerà la password in chiaro proposta dall'utente e l'hash presente nel database. 
 
 ###### Client ######
 Per poter sfruttare le API messe a disposizione dal web service in questione si è scelto di sviluppare una Web App con tecnologia *React*, una libreria javascript per creare interfacce utente moderne.
-L'obiettivo imposto è stato quello di offrire un'interfaccia grafica per interrogare il web service fino ad ora discusso. Il design della GUI è stato realizzato con *material-ui*, componente React per web development semplice e rapido con stile Material by Google.
+L'obiettivo imposto è stato quello di offrire un'interfaccia grafica per interrogare il web service fino ad ora discusso. Il design della GUI è stato realizzato con *material-ui*, componente React per un web development semplice e rapido con stile Material by Google.
 
-Per creare il workspace di una Web App React è sufficiente un semplice comando:
+Per impostare il workspace di una Web App React è sufficiente un semplice comando:
 ```sh
 $ npx create-react-app pdgt-covid-webapp
 ```
-Terminato il processo si avrà, senza aver battuto una singola riga di codice, una **Single Sage Application (SPA)** con tutte le directory e files di default predisposti pronti ad essere modificati per realizzare la propria applicazione.
+Terminato il processo si avrà, senza aver battuto una singola riga di codice, una **Single Sage Application (SPA)** con tutte le directory e files di default predisposti pronti ad essere adattati per realizzare la propria applicazione.
 Il principale componente sfruttato per mostrare e manipolare i dati a disposizione è `material-table`, una semplice ma molto potente data-table per React basata su [Material-UI Table](https://material-ui.com/components/tables/#table).
 L'installazione prevede un singolo comando `npm` :
 ```sh
 $ npm install material-table @material-ui/core --save
 ```
-Le comunicazioni con protocollo HTTP lato client sono effettuate sfruttando `axios`, un client HTTP promise-api-based per nodejs.
-Maggiori informazioni circa il funzionamento della web app sono disponibili nella sezione dedicata con tanto di screenshots del funzionamento. 
+Le comunicazioni con protocollo HTTP lato client, comprensive di operazioni *GET, POST, PATCH *e* DELETE*, sono effettuate sfruttando `axios` che non è altro che un client HTTP promise-api-based per nodejs.
 ```sh
 $ npm install axios
 ```
 ```go
 import axios from "axios";
 ```
+Maggiori informazioni circa il funzionamento della web app sono disponibili nella sezione dedicata con tanto di screenshots del funzionamento. 
+
 ------------------------------------------
 
 ### Dati e Servizi Esterni ###
 
-Il recupero dei dati relativi all'andamento del Covid-19 in Italia è stato ricavato dal *Dipartimento della Protezione Civile (DPC)*  sotto licenza *Creative Commons Attribution 4.0 International* per mezzo di file .csv ospitati nel repository pubblico GitHub [pcm-dpc/COVID-19](https://github.com/pcm-dpc/COVID-19). [Licenza servizio](https://github.com/pcm-dpc/COVID-19/blob/master/LICENSE).
+Il recupero dei dati relativi all'andamento del Covid-19 in Italia è stato ricavato dal *Dipartimento della Protezione Civile (DPC)*  sotto licenza *Creative Commons Attribution 4.0 International* tramite file .csv ospitati nel repository pubblico GitHub [pcm-dpc/COVID-19](https://github.com/pcm-dpc/COVID-19). [Licenza dati](https://github.com/pcm-dpc/COVID-19/blob/master/LICENSE).
 
-La realizzazione della mappa interattiva accessibile dalla web app, che illustra la diffusione del Covid-19 in italia mediante cerchi di dimensione in scala direttamente proporzionale al totale dei casi della regione, è possibile grazie alle API di Google Maps. [Termini di servizio](https://cloud.google.com/maps-platform/terms?_ga=2.90427935.407167450.1593004949-1198461100.1591999667).
+La realizzazione della mappa interattiva accessibile dalla web app, che illustra la diffusione del Covid-19 in italia mediante cerchi di circonferenza in scala al totale dei casi della regione, è possibile grazie alle API di Google Maps. [Termini di servizio](https://cloud.google.com/maps-platform/terms?_ga=2.90427935.407167450.1593004949-1198461100.1591999667).
 
-L'immagine degli avatar utente è ricavata sfruttando l'API del servizio [DiceBear Avatars](https://avatars.dicebear.com). Il servizio permette di effettuare richieste HTTP richiedendo diverse tipologie ed immagini di avatar in base alle preferenze imposte mediante il path dell'API. [Licenza servizio](https://github.com/DiceBear/avatars/blob/v4/LICENSE).
+L'immagine avatar degli utenti è ricavata sfruttando l'API del servizio [DiceBear Avatars](https://avatars.dicebear.com). Il servizio permette di effettuare richieste HTTP richiedendo diverse tipologie ed immagini di avatar in base alle preferenze imposte mediante il path dell'API. [Licenza servizio](https://github.com/DiceBear/avatars/blob/v4/LICENSE).
 
 ------------------------------------------
 
 ### Documentazione API ###
 
-E' possibile accedere alla documentazione dell'API su SwaggerHub a questo indirizzo: https://app.swaggerhub.com/apis/edoardo-conti/pdgt-covid/1.0.0#/
+E' possibile accedere alla documentazione essenziale dell'API a questo indirizzo: https://app.swaggerhub.com/apis-docs/edoardo-conti/pdgt-covid/1.0.0
 
-Per maggiori risultati in merito si inviata a continuare la lettura qui sotto.
+Per la documentazione completa si invita a continuare la lettura qui di seguito:
 
 ###### Trend Nazionale ######
 
-* **Visualizzare tutti i trend nazionali**
+* **Visualizzare tutto il trend nazionale**
 
 `GET https://pdgt-covid.herokuapp.com/api/trend/nazionale`
 ```json
@@ -242,7 +243,8 @@ Per maggiori risultati in merito si inviata a continuare la lettura qui sotto.
       }
     },
     [...]
-  ]
+  ],
+  "status": 200
 }
 ```
 
@@ -350,7 +352,7 @@ Per maggiori risultati in merito si inviata a continuare la lettura qui sotto.
 }
 ```
 
-* **Aggiornamento di un trend giornaliero nazionale esistente** `(Richiesta Autorizzazione)`
+* **Aggiornamento di un trend nazionale giornaliero già esistente** `(Richiesta Autorizzazione)`
 
 `PATCH https://pdgt-covid.herokuapp.com/api/trend/nazionale/data/:bydate`
 ```json
@@ -373,7 +375,7 @@ Per maggiori risultati in merito si inviata a continuare la lettura qui sotto.
 }
 ```
 
-* **Eliminazione di un trend giornaliero nazionale esistente** `(Richiesta Autorizzazione)`
+* **Eliminazione di un trend nazionale giornaliero già esistente** `(Richiesta Autorizzazione)`
 
 `DELETE https://pdgt-covid.herokuapp.com/api/trend/nazionale/data/:bydate`
 ```json
@@ -450,7 +452,8 @@ Per maggiori risultati in merito si inviata a continuare la lettura qui sotto.
             "data": "2020-02-25T00:00:00Z",
             "info": [...]
         }
-    ]
+    ],
+    "status": 200
 }
 ```
 
@@ -510,7 +513,8 @@ Per maggiori risultati in merito si inviata a continuare la lettura qui sotto.
                 [...]
             ]
         }
-    ]
+    ],
+    "status": 200
 }
 ```
 
@@ -575,7 +579,8 @@ Per maggiori risultati in merito si inviata a continuare la lettura qui sotto.
             ]
         },
         [...]
-    ]
+    ],
+    "status": 200
 }      
 ```
 
@@ -617,7 +622,7 @@ Per maggiori risultati in merito si inviata a continuare la lettura qui sotto.
 }
 ```
 
-* **Visualizzare il picco di nuovi positivi più alto tra tutti i trend regionali filtrato per regione**
+* **Visualizzare il picco di nuovi positivi di tutti i trend regionali filtrato per regione**
 
 `GET https://pdgt-covid.herokuapp.com/api/trend/regionale/picco/:byregid`
 ```json
@@ -679,6 +684,11 @@ Per maggiori risultati in merito si inviata a continuare la lettura qui sotto.
             "username": "professore",
             "is_admin": true,
             "avatar_url": "https://avatars.dicebear.com/api/initials/p.svg"
+        },
+	{
+            "username": "test",
+            "is_admin": false,
+            "avatar_url": "https://avatars.dicebear.com/api/initials/t.svg"
         },
         [...]
     ],
@@ -766,9 +776,9 @@ Per maggiori risultati in merito si inviata a continuare la lettura qui sotto.
 
 L'integrazione continua (*continuous integration o CI*) è affidata al servizio **Travis CI**. Nel repository è possibile consultare il file [.travis.yml](https://github.com/edoardo-conti/pdgt-covid/blob/master/.travis.yml) che specifica i parametri fondamentali per poter integrare il repository nella piattaforma. 
 
-Nello stesso file è presente il tag `deploy`, responsabile del deployment continuo (*continuous deployment o CD*) sul provider **Heroku**. Grazie a quest'ultimo è stato possibile creare un app dedicata al progetto e renderlo disponibile online tramite indirizzo web pubblicamente accessibile. L'API Key di Heroku è stata fornita in forma cryptata, ottenuta grazie a `travis-ci cli`, il quale non espone problematiche a livello di sicurezza.
+Nel file yaml in questione è presente il tag `deploy`, responsabile del deployment continuo (*continuous deployment o CD*) sul provider **Heroku**. Grazie a quest'ultimo è stato possibile creare un app dedicata al progetto e rendere quest'ultimo disponibile online tramite indirizzo web pubblicamente accessibile. L'API Key di Heroku è stata fornita in forma cryptata, ottenuta grazie a `travis-ci cli`, evitando problematiche a livello di sicurezza. Utile in questo frangente è stato [GitGuardian](https://gitguardian.com). Infatti per mezzo di scansioni continue di vulnerabilità del repository permette di evitare possibili policy breaks.
 
-Riassumendo, durante la fase di sviluppo, quando si avrà raggiunto un momento utile per effettuare il commit delle modifiche dei file sorgente, questo è l'ordine step-by-step richiesto:
+Durante la fase di sviluppo, quando si raggiungeva un momento utile per effettuare il commit delle modifiche dei file sorgente, questo è l'ordine d'esecuzione dei comandi per l'upload del codice:
 ```sh
 $ go mod tidy
 $ go mod vendor
@@ -776,15 +786,15 @@ $ git add -A .
 $ git commit -m "breve commento modifiche apportate"
 $ git push
 ```
-Ultimato il push nel repository Git, verrà triggerata la build in travis-ci dell'ultimo commit il quale imposterà l'ambiente di compilazione (comprensivo di ```go env```), effettuerà una pull request del branch master ed avvierà la compilazione e deployment automatico su Heroku nell'app indicata. Ergo, dopo ogni ```git push``` l'implementazione di un sistema CI/CD mi permetterà di poter accedere all'API dopo pochi istanti all'indirizzo dell'applicativo Heroku di seguito indicato. 
+Ultimato il push nel repository Git, verrà triggerata la build in travis-ci dell'ultimo commit il quale imposterà l'ambiente di compilazione (comprensivo di `go env`), effettuerà una pull request del branch master ed avvierà la compilazione e deployment automatico su Heroku nell'app indicata. Ergo, dopo ogni `git push` l'implementazione di tale sistema CI/CD mi permetterà di poter accedere all'API all'indirizzo dell'applicativo Heroku dopo soli pochi istanti.
 
-Il Web Service API è pertanto accessibile al seguente indirizzo: https://pdgt-covid.herokuapp.com
+Il Web Service (API) è pertanto accessibile al seguente indirizzo: https://pdgt-covid.herokuapp.com
 
 ------------------------------------------
 
 ### Client ed Esempi d'uso ###
 
-Il repository pubblico del client è accessibile a questo indirizzo: https://github.com/edoardo-conti/pdgt-covid-client
+Il repository pubblico del client è consultabile a questo indirizzo: https://github.com/edoardo-conti/pdgt-covid-client
 
 L'applicativo è erogato secondo le stesse modalità CI/CD illustrate nella sezione appena sopra, ergo è accessibile al seguente indirizzo: https://pdgt-covid-client.herokuapp.com
 
@@ -796,8 +806,8 @@ password: test
 
 Raggiunta la homepage della web app si verrà accolti da un messaggio di benvenuto. Nel menù superiore, a sinistra è possibile accedere alla lista di funzionalità del client. Si riportano screenshots del funzionamento dell'applicativo:
 
-###### Visitatore ######
-Visualizzazione trend nazionale e regionale senza permessi di modifica ed eliminazione. La tabella utenti non è accessibile ad un visitatore.
+###### Fruizione da Visitatore ######
+Visualizzazione trend nazionale e regionale senza permessi di modifica o eliminazione. La tabella utenti non è accessibile ad un visitatore.
 <div>
   <img src="https://i.imgur.com/jowG7BB.png" width="30%" />
   <img src="https://i.imgur.com/VQEb9vN.png" width="30%" /> 
@@ -809,8 +819,8 @@ Visualizzazione trend nazionale e regionale senza permessi di modifica ed elimin
   <img src="https://i.imgur.com/IUbZAxD.png" width="30%" /> 
 </div>
 
-###### Utente ed Admin ######
-Sono state evidenziate le differenze accedendo alla pagine come utente loggato. Sono disponibili icone per l'aggiunta, modifica e cancellazione di trend nazionale. E' inoltre possibile accedere alla tabella utenti in lettura e scrittura.
+###### Fruizione da Utente ed Admin ######
+Sono state evidenziate le differenze accedendo alle pagine come utente invece che come visitatore. Sono disponibili icone per l'aggiunta, modifica e cancellazione di trend nazionali. E' inoltre possibile accedere alla tabella utenti in lettura e scrittura.
 <div>
   <img src="https://i.imgur.com/C6GIYAg.png" width="30%" />
   <img src="https://i.imgur.com/Idx8kSt.png" width="30%" /> 
@@ -818,7 +828,7 @@ Sono state evidenziate le differenze accedendo alla pagine come utente loggato. 
 </div>
 
 ###### Gestione degli errori ######
-Dimostrazione della gestione degli errori, elaborata in parte lato client ma in maggior parte lato server. I messaggi d'errore sono direttamente quelli riportati dalle richieste HTTP quando possibile.
+Dimostrazione della gestione degli errori, elaborata in parte lato client ma sostanzialmente lato server riportando gli errori erogati direttamente dall'API.
 <div>
   <img src="https://i.imgur.com/MAYgwhi.png" width="30%" /> 
   <img src="https://i.imgur.com/z5tMRvB.png" width="30%" /> 
@@ -826,7 +836,7 @@ Dimostrazione della gestione degli errori, elaborata in parte lato client ma in 
 </div>
 
 ###### Autorizzazione ######
-Come riportato nella tabella dei privilegi più in su, vi sono delle differenze tra ciò che un utente può richiedere rispetto ad un admin. 
+Come riportato nella tabella dei privilegi, vi sono delle differenze tra ciò che un utente può effettuare rispetto ad un admin. 
 <div>
   <img src="https://i.imgur.com/7gh5zfH.png" width="30%" /> 
   <img src="https://i.imgur.com/x9jxbIP.png" width="30%" /> 
